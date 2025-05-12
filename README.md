@@ -3,6 +3,8 @@
 A fork of libcod1 :D
 
 Supported Call of Duty version: **1.5**
+
+Any problems ? Discord : https://discord.gg/8sr5Yg4R
 ___
 
 #### Credits
