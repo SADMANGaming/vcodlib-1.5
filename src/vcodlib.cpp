@@ -199,39 +199,54 @@ void custom_Com_Init(char *commandLine)
 
 }
 
-
-void custom_GScr_LoadGameTypeScript()
+int custom_GScr_LoadGameTypeScript()
 {
+    unsigned int i;
+    char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
+
     hook_gametype_scripts->unhook();
-    void (*GScr_LoadGameTypeScript)();
-    *(int*)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
-    GScr_LoadGameTypeScript();
+    int (*GScr_LoadGameTypeScript)();
+    *(int *)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
+    int ret = GScr_LoadGameTypeScript();
     hook_gametype_scripts->hook();
 
-    unsigned int i;
-    
-    if(*fs_callbacks_additional->string && !Scr_LoadScript(fs_callbacks_additional->string))
-        Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional failed.\n");
-
-    for (i = 0; i < sizeof(callbacks) / sizeof(callbacks[0]); i++)
+    if(*fs_callbacks_additional->string)
     {
-        if(callbacks[i].custom)
+        if(!Scr_LoadScript(fs_callbacks_additional->string))
+            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional cvar failed.\n");
+    }
+    else
+    {
+        Com_DPrintf("custom_GScr_LoadGameTypeScript: No custom callback file specified in fs_callbacks_additional cvar.\n");
+    }
+
+    if(*fs_callbacks->string)
+        strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
+        
+    for (i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++)
+    {
+        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback: PlayerCommand
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
         else
-            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks->string, callbacks[i].name);
-
-        /*if (*callbacks[i].pos && g_debugCallbacks->integer)
+            *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
+        
+        /*if ( *callbacks[i].pos && g_debugCallbacks->integer )
             Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: verify scrVarPub_t
     }
-}
 
+    return ret;
+}
 
 void hook_ClientCommand(int clientNum)
 {
     if(!Scr_IsSystemActive())
         return;
 
-    if (!codecallback_playercommand)
+    char* cmd = Cmd_Argv(0);
+    if(!strcmp(cmd, "gc"))
+        return; // Prevent server crash
+      
+    if(!codecallback_playercommand)
     {
         ClientCommand(clientNum);
         return;
@@ -239,14 +254,14 @@ void hook_ClientCommand(int clientNum)
 
     stackPushArray();
     int args = Cmd_Argc();
-    for (int i = 0; i < args; i++)
+    for(int i = 0; i < args; i++)
     {
         char tmp[MAX_STRINGLENGTH];
         trap_Argv(i, tmp, sizeof(tmp));
-        if (i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
+        if(i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
         {
             char *part = strtok(tmp + 1, " ");
-            while (part != NULL)
+            while(part != NULL)
             {
                 stackPushString(part);
                 stackPushArrayLast();
@@ -263,6 +278,11 @@ void hook_ClientCommand(int clientNum)
     short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
     Scr_FreeThread(ret);
 }
+
+
+
+
+
 customPlayerState_t customPlayerState[MAX_CLIENTS];
 void custom_SV_BotUserMove(client_t *client)
 {
