@@ -187,7 +187,7 @@ void custom_Com_Init(char *commandLine)
     sv_showCommands = Cvar_FindVar("sv_showCommands");
 
     // Register custom cvars
-    Cvar_Get("libcoduo", "1", CVAR_SERVERINFO);
+    Cvar_Get("vcodlib", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     
