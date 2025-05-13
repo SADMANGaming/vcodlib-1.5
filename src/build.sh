@@ -68,6 +68,9 @@ $cc $debug $options $constants -c gsc_utils.cpp -o objects/gsc_utils.opp
 echo "##### COMPILE GSC_BOTS.CPP #####"
 $cc $debug $options $constants -c gsc_bots.cpp -o objects/gsc_bots.opp
 
+echo "##### COMPILE JUMP.CPP #####"
+$cc $debug $options $constants -c jump.cpp -o objects/jump.opp
+
 echo "##### COMPILE VCODLIB.CPP #####"
 $cc $debug $options $constants -c vcodlib.cpp -o objects/vcodlib.opp
 

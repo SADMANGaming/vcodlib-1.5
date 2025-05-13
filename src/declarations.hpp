@@ -83,6 +83,7 @@
 #define PMF_SPECTATOR       0x40000
 #define PMF_FOLLOW          0x80000
 #define PMF_DISABLEWEAPON   0x100000
+#define PMF_JUMPING         0x2000
 
 #define JUMP_LAND_SLOWDOWN_TIME 1800
 #define OVERCLIP 1.001

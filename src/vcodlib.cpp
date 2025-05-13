@@ -43,6 +43,8 @@ cvar_t *sv_cracked;
 cvar_t *fs_callbacks_additional;
 cvar_t *fs_callbacks;
 cvar_t *sv_spectator_noclip;
+cvar_t* jump_slowdownEnable;
+cvar_t *jump_height;
 
 
 cHook *hook_com_init;
@@ -63,7 +65,9 @@ int codecallback_playerkilled = 0;
 int codecallback_client_spam = 0;
 int codecallback_playercommand = 0;
 
-
+// Resume addresses
+uintptr_t resume_addr_PM_WalkMove;
+uintptr_t resume_addr_PM_SlideMove;
 
 callback_t callbacks[] =
 {
@@ -197,6 +201,8 @@ void custom_Com_Init(char *commandLine)
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
     sv_spectator_noclip = Cvar_Get("sv_spectator_noclip", "0", CVAR_ARCHIVE | CVAR_SERVERINFO);
+    jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
 
 }
 
@@ -550,9 +556,18 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
+    hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
+    resume_addr_PM_WalkMove = (uintptr_t)dlsym(libHandle, "PM_GetEffectiveStance") + 0x18AA;
+    hook_jmp((int)dlsym(libHandle, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
+    resume_addr_PM_SlideMove = (uintptr_t)dlsym(libHandle, "PM_SlideMove") + 0xBA5;
+    hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
+    hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
+
     if (sv_spectator_noclip->integer == 1) {
         *(int *)((char *)dlsym(libHandle, "SpectatorThink") + 0x21B + 2) = 0; // skipping 2 bytes
     }
+
+
     hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
     hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
