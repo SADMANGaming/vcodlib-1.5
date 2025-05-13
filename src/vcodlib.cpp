@@ -42,6 +42,7 @@ cvar_t *sv_showCommands;
 cvar_t *sv_cracked;
 cvar_t *fs_callbacks_additional;
 cvar_t *fs_callbacks;
+cvar_t *sv_spectator_noclip;
 
 
 cHook *hook_com_init;
@@ -187,7 +188,7 @@ void custom_Com_Init(char *commandLine)
     sv_showCommands = Cvar_FindVar("sv_showCommands");
 
     // Register custom cvars
-    Cvar_Get("vcodlib", "1", CVAR_SERVERINFO);
+    Cvar_Get("libcoduo", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     
@@ -195,9 +196,11 @@ void custom_Com_Init(char *commandLine)
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
-
+    sv_spectator_noclip = Cvar_Get("sv_spectator_noclip", "0", CVAR_ARCHIVE | CVAR_SERVERINFO);
 
 }
+
+
 
 int custom_GScr_LoadGameTypeScript()
 {
@@ -236,6 +239,7 @@ int custom_GScr_LoadGameTypeScript()
 
     return ret;
 }
+
 
 void hook_ClientCommand(int clientNum)
 {
@@ -278,9 +282,6 @@ void hook_ClientCommand(int clientNum)
     short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
     Scr_FreeThread(ret);
 }
-
-
-
 
 
 customPlayerState_t customPlayerState[MAX_CLIENTS];
@@ -549,7 +550,9 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
-    
+    if (sv_spectator_noclip->integer == 1) {
+        *(int *)((char *)dlsym(libHandle, "SpectatorThink") + 0x21B + 2) = 0; // skipping 2 bytes
+    }
     hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
     hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
