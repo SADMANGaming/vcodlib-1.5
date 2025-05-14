@@ -473,7 +473,7 @@ void custom_SV_DirectConnect(netadr_t from) {
 
             if (NET_CompareBaseAdr(from, cl->netchan.remoteAddress)) {
                 Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
-                NET_OutOfBandPrint(NS_SERVER, from, "print\nOnly one CONNECTING client allowed per IP.\n");
+                NET_OutOfBandPrint(NS_SERVER, from, "Only one CONNECTING client allowed per IP.\n");
                 return;
             }
         }
