@@ -11,12 +11,12 @@
 #include <cstring>
 #include <vector>
 #include <cmath>    // fabs, sqrt
-
+#include <unordered_map>
 
 #include "gsc.hpp"
 
 
-
+std::map<std::string, bool> connectingIPs;
 
 // Stock cvars
 cvar_t *com_cl_running;
@@ -45,7 +45,9 @@ cvar_t *fs_callbacks;
 cvar_t *sv_spectator_noclip;
 cvar_t* jump_slowdownEnable;
 cvar_t *jump_height;
-
+cvar_t *sv_allowRcon;
+cvar_t *fs_svrPaks;
+cvar_t *sv_fixq3fill;
 
 cHook *hook_com_init;
 cHook *hook_gametype_scripts;
@@ -200,10 +202,12 @@ void custom_Com_Init(char *commandLine)
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
-    sv_spectator_noclip = Cvar_Get("sv_spectator_noclip", "0", CVAR_ARCHIVE | CVAR_SERVERINFO);
+    sv_spectator_noclip = Cvar_Get("sv_spectator_noclip", "0", CVAR_ARCHIVE);
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
-
+    sv_allowRcon = Cvar_Get("sv_allowRcon", "1", CVAR_ARCHIVE);
+    fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
+    sv_fixq3fill = Cvar_Get("sv_fixq3fill", "0", CVAR_ARCHIVE);
 }
 
 
@@ -290,6 +294,95 @@ void hook_ClientCommand(int clientNum)
 }
 
 
+/*
+qboolean FS_svrPak(const char *base)
+{
+    if (strstr(base, "_svr_"))
+        return qtrue;
+
+    if (*fs_svrPaks->string)
+    {
+        bool isSvrPak = false;
+        size_t lenString = strlen(fs_svrPaks->string) +1;
+        char* stringCopy = (char*)malloc(lenString);
+        strcpy(stringCopy, fs_svrPaks->string);
+
+        const char* separator = ";";
+        char* strToken = strtok(stringCopy, separator);
+
+        while (strToken != NULL)
+        {
+            if (!strcmp(base, strToken))
+            {
+                isSvrPak = true;
+                break;
+            }
+            strToken = strtok(NULL, separator);
+        }
+
+        free(stringCopy);
+        if (isSvrPak)
+            return qtrue;
+    }
+
+    return qfalse;
+}
+
+bool shouldServeFile(const char *requestedFilePath)
+{
+    static char localFilePath[MAX_OSPATH*2+5];
+    searchpath_t* search;
+
+    localFilePath[0] = 0;
+
+    for(search = fs_searchpaths; search; search = search->next)
+    {
+        if(search->pak)
+        {
+            snprintf(localFilePath, sizeof(localFilePath), "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
+            if(!strcmp(localFilePath, requestedFilePath))
+                if(!FS_svrPak(search->pak->pakBasename))
+                    return true;
+        }
+    }
+    return false;
+}
+
+
+void custom_SV_BeginDownload_f(client_t *cl)
+{
+    //// [exploit patch] q3dirtrav
+    // See:
+    //- https://aluigi.altervista.org/video/q3dirtrav.avi
+    //- https://aluigi.altervista.org/poc/q3dirtrav.zip
+    //- https://oldforum.aluigi.org/post3479.html#p3479
+    
+    int args = Cmd_Argc();
+    if (args > 1)
+    {
+        const char* arg1 = Cmd_Argv(1);
+        if (!shouldServeFile(arg1))
+        {
+            char ip[16];
+            snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
+                cl->netchan.remoteAddress.ip[0],
+                cl->netchan.remoteAddress.ip[1],
+                cl->netchan.remoteAddress.ip[2],
+                cl->netchan.remoteAddress.ip[3]);
+            Com_Printf("WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
+            return;
+        }
+    }
+    ////
+
+    hook_sv_begindownload_f->unhook();
+    void (*SV_BeginDownload_f)(client_t *cl);
+    *(int*)&SV_BeginDownload_f = hook_sv_begindownload_f->from;
+    SV_BeginDownload_f(cl);
+    hook_sv_begindownload_f->hook();
+}*/
+
+
 customPlayerState_t customPlayerState[MAX_CLIENTS];
 void custom_SV_BotUserMove(client_t *client)
 {
@@ -366,6 +459,31 @@ const char* hook_AuthorizeState(int arg)
 }
 
 
+void custom_SV_DirectConnect(netadr_t from) {
+
+    // Q3FILL FIX
+    Com_DPrintf("custom_SV_DirectConnect()\n");
+    if(sv_fixq3fill->integer == 1)
+    {
+        for (int i = 0; i < sv_maxclients->integer; i++) {
+            client_t *cl = &svs.clients[i];
+
+            if (cl->state != CS_CONNECTED)
+                continue;
+
+            if (NET_CompareBaseAdr(from, cl->netchan.remoteAddress)) {
+                Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
+                NET_OutOfBandPrint(NS_SERVER, from, "print\nOnly one CONNECTING client allowed per IP.\n");
+                return;
+            }
+        }
+    }
+    // Allow connection
+    SV_DirectConnect(from);
+}
+
+
+
 
 
 /*void custom_SV_AddOperatorCommands()
@@ -435,6 +553,17 @@ void ServerCrash(int sig)
     exit(1);
 }
 
+/*void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
+{
+    char* password = Cmd_Argv(1);
+
+    if (sv_allowRcon->integer == 0) // i know what i am doing
+	return;
+
+    qboolean badRconPassword = !strlen(sv_rconPassword->string) || !str_iseq(password, sv_rconPassword->string);
+
+    SVC_RemoteCommand(from, msg);
+}*/
 
 void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
@@ -556,7 +685,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
-    hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
+    hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked); //UO:sub_24B7C
     resume_addr_PM_WalkMove = (uintptr_t)dlsym(libHandle, "PM_GetEffectiveStance") + 0x18AA;
     hook_jmp((int)dlsym(libHandle, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
     resume_addr_PM_SlideMove = (uintptr_t)dlsym(libHandle, "PM_SlideMove") + 0xBA5;
@@ -566,6 +695,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     if (sv_spectator_noclip->integer == 1) {
         *(int *)((char *)dlsym(libHandle, "SpectatorThink") + 0x21B + 2) = 0; // skipping 2 bytes
     }
+
+    //*(float*)((char *)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10AC) = jump_height->value;
 
 
     hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
@@ -604,6 +735,11 @@ public:
         hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
         hook_call(0x0809db31, (int)Scr_GetCustomMethod);
 
+        //Q3fill fix | Not sure if it has any bugs. I wait till someone reports 
+        hook_call(0x0809370B, (int)custom_SV_DirectConnect);
+
+        //hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
+
 
         hook_com_init = new cHook(0x08070ef8, (int)custom_Com_Init);
         hook_com_init->hook();
@@ -612,9 +748,11 @@ public:
         hook_sys_loaddll = new cHook(0x080d3cdd, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
 
+
+
         //hook_sv_addoperatorcommands = new cHook(0x8084A3C, (int)custom_SV_AddOperatorCommands);
         //hook_sv_addoperatorcommands->hook();
-        //
+        // 08093798
 
 
 

@@ -1,6 +1,7 @@
 #include "jump.hpp"
 
 extern cvar_t *jump_slowdownEnable;
+extern cvar_t *jump_height;
 
 #define JUMP_LAND_SLOWDOWN_TIME 1800
 
@@ -29,7 +30,8 @@ extern "C" void Jump_ApplySlowdown()
     if(ps->pm_flags & PMF_JUMPING)
     {
         float scale = 1.0;
-        
+
+
         if(ps->pm_time <= JUMP_LAND_SLOWDOWN_TIME)
         {
             if(!ps->pm_time)

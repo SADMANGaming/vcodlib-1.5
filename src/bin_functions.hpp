@@ -33,7 +33,6 @@ static const Com_Printf_t Com_Printf = (Com_Printf_t)0x0806fc10;
 typedef void (*Com_Error_t)(errorParm_t code, const char *format, ...);
 static const Com_Error_t Com_Error = (Com_Error_t)0x0806fe74;
 
-
 //// PB
 typedef const char * (*PBAuthClient_t)(const char *clientAddress, int cl_punkbuster, const char *PBGuid);
 static const PBAuthClient_t PBAuthClient = (PBAuthClient_t)0x080c191c;
@@ -72,6 +71,8 @@ static const SV_UserinfoChanged_t SV_UserinfoChanged = (SV_UserinfoChanged_t)0x0
 typedef void (*SV_DropClient_t)(client_t *drop, const char *reason);
 static const SV_DropClient_t SV_DropClient = (SV_DropClient_t)0x0808ac11;
 
+typedef void (*SV_DirectConnect_t)(netadr_t from);
+static const SV_DirectConnect_t SV_DirectConnect = (SV_DirectConnect_t)0x8089E7E;
 
 // SVC
 typedef void (*SVC_Status_t)(netadr_t from);

@@ -134,6 +134,8 @@ typedef enum
     ET_INVISIBLE = 7,
 } entityType_t;
 
+
+
 typedef enum
 {
     CS_FREE,
