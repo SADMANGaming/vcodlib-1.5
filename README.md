@@ -1,5 +1,5 @@
 # VCODLIB 1.5
-### Adding more features, gsc functions to Call of Duty 1.1
+### Adding more features, gsc functions to Call of Duty 1.5
 A fork of libcod1 :D
 
 Supported Call of Duty version: **1.5**
