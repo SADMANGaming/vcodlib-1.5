@@ -4,6 +4,8 @@
 #define qtrue   1
 #define qfalse  0
 
+#define QDECL __attribute__((cdecl))
+
 // 3D vectors
 #define DotProduct(a, b)        ((a)[0] * (b)[0] + (a)[1] * (b)[1] + (a)[2] * (b)[2])
 #define VectorCopy(a, b)        ((b)[0] = (a)[0], (b)[1] = (a)[1], (b)[2] = (a)[2])
@@ -192,6 +194,8 @@ typedef enum
     NS_CLIENT,
     NS_SERVER
 } netsrc_t;
+
+
 
 typedef struct
 {
@@ -809,6 +813,38 @@ typedef struct weaponinfo_t
     //...
 } weaponinfo_t;
 
+
+/////////// DIRTAV
+
+struct directory_t
+{
+    char path[MAX_OSPATH];
+    char gamedir[MAX_OSPATH];
+};
+struct pack_t
+{
+    char pakFilename[MAX_OSPATH];
+    char pakBasename[MAX_OSPATH];
+    char pakGamename[MAX_OSPATH];
+    unzFile handle;
+    int checksum;
+    int pure_checksum;
+    int numFiles;
+    int referenced;
+    int hashSize;
+    //...
+};
+
+struct searchpath_t
+{
+    searchpath_t *next;
+    pack_t *pak;
+    directory_t *dir;
+    //...
+};
+
+////////////// ENDDDD
+
 typedef enum
 {
     ANIM_BP_TORSO = 2,
@@ -882,7 +918,9 @@ static const int entityStateFields_offset = 0x080db860;
 static const int objectiveFields_offset = 0x080e9a80;
 static const int clientStateFields_offset = 0x080dbfe0;
 static const int archivedEntityFields_offset = 0x080dbb80;
+static const int fs_searchpaths_offset = 0x080E8C30;
 
+#define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
 #define scrVmPub (*((scrVmPub_t*)(vmpub_offset)))
 #define sv (*((server_t*)(sv_offset)))
 #define svs (*((serverStatic_t*)(svs_offset)))
@@ -934,6 +972,7 @@ typedef struct customPlayerState_s
     char botUpMove;
     ////
     int gravity;
+    int speed;
 } customPlayerState_t;
 
 

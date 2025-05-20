@@ -16,7 +16,6 @@
 #include "gsc.hpp"
 
 
-std::map<std::string, bool> connectingIPs;
 
 // Stock cvars
 cvar_t *com_cl_running;
@@ -35,7 +34,6 @@ cvar_t *sv_maxRate;
 cvar_t *sv_pure;
 cvar_t *sv_rconPassword;
 cvar_t *sv_serverid;
-cvar_t *sv_showAverageBPS;
 cvar_t *sv_showCommands;
 
 // Custom cvars
@@ -55,6 +53,7 @@ cHook *hook_gametype_scripts;
 cHook *hook_sys_loaddll;
 cHook *hook_SV_BotUserMove;
 cHook *hook_clientendframe;
+cHook *hook_sv_begindownload_f;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -163,7 +162,7 @@ AngleNormalize180Accurate_t AngleNormalize180Accurate;
 AngleNormalize180_t AngleNormalize180;
 BG_CheckProneValid_t BG_CheckProneValid;
 trap_SendServerCommand_t trap_SendServerCommand;
-
+Jump_Set_t Jump_Set;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -190,7 +189,6 @@ void custom_Com_Init(char *commandLine)
     sv_showCommands = Cvar_FindVar("sv_showCommands");
     sv_fps = Cvar_FindVar("sv_fps");
     sv_maxRate = Cvar_FindVar("sv_maxRate");
-    sv_showAverageBPS = Cvar_FindVar("sv_showAverageBPS");
     sv_showCommands = Cvar_FindVar("sv_showCommands");
 
     // Register custom cvars
@@ -294,7 +292,7 @@ void hook_ClientCommand(int clientNum)
 }
 
 
-/*
+
 qboolean FS_svrPak(const char *base)
 {
     if (strstr(base, "_svr_"))
@@ -348,7 +346,6 @@ bool shouldServeFile(const char *requestedFilePath)
     return false;
 }
 
-
 void custom_SV_BeginDownload_f(client_t *cl)
 {
     //// [exploit patch] q3dirtrav
@@ -380,7 +377,7 @@ void custom_SV_BeginDownload_f(client_t *cl)
     *(int*)&SV_BeginDownload_f = hook_sv_begindownload_f->from;
     SV_BeginDownload_f(cl);
     hook_sv_begindownload_f->hook();
-}*/
+}
 
 
 customPlayerState_t customPlayerState[MAX_CLIENTS];
@@ -444,6 +441,9 @@ int custom_ClientEndFrame(gentity_t *ent)
 
         if(customPlayerState[num].gravity > 0)
         ent->client->ps.gravity = customPlayerState[num].gravity;
+
+        if(customPlayerState[num].speed > 0)
+        ent->client->ps.speed = customPlayerState[num].speed;
 
     }
 
@@ -680,6 +680,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     AngleNormalize180 = (AngleNormalize180_t)dlsym(libHandle, "AngleNormalize180");
     BG_CheckProneValid = (BG_CheckProneValid_t)dlsym(libHandle, "BG_CheckProneValid");
 
+    Jump_Set = (Jump_Set_t)((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0xEDD);
+
     trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(libHandle, "trap_SendServerCommand");
     ////
 
@@ -692,11 +694,14 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
 
+    hook_call((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10B0, (int)hook_Jump_Check);
+
     if (sv_spectator_noclip->integer == 1) {
         *(int *)((char *)dlsym(libHandle, "SpectatorThink") + 0x21B + 2) = 0; // skipping 2 bytes
     }
 
-    //*(float*)((char *)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10AC) = jump_height->value;
+
+    *(float*)((char *)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10AC) = jump_height->value;
 
 
     hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
@@ -712,7 +717,7 @@ public:
     vcodlib()
     {
 
-        printf("========Initializing LIBCODUO========\n");
+        printf("========Initializing VCODLIB========\n");
         // Don't inherit lib of parent
         unsetenv("LD_PRELOAD");
 
@@ -746,9 +751,10 @@ public:
         hook_SV_BotUserMove = new cHook(0x080940d2, (int)custom_SV_BotUserMove);
         hook_SV_BotUserMove->hook();
         hook_sys_loaddll = new cHook(0x080d3cdd, (int)custom_Sys_LoadDll);
-        hook_sys_loaddll->hook();
+        hook_sys_loaddll->hook(); 
 
-
+//        hook_sv_begindownload_f = new cHook(0x0808B456, (int)custom_SV_BeginDownload_f);
+//        hook_sv_begindownload_f->hook();
 
         //hook_sv_addoperatorcommands = new cHook(0x8084A3C, (int)custom_SV_AddOperatorCommands);
         //hook_sv_addoperatorcommands->hook();

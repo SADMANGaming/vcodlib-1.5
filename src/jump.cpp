@@ -10,6 +10,12 @@ extern pmove_t *pm;
 extern uintptr_t resume_addr_PM_WalkMove;
 extern uintptr_t resume_addr_PM_SlideMove;
 
+void hook_Jump_Check()
+{
+    float height = jump_height->value;
+    Jump_Set(height);
+}
+
 __attribute__ ((naked)) void hook_PM_WalkMove_Naked()
 {
     asm volatile (

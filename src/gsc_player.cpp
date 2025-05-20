@@ -270,8 +270,65 @@ void gsc_player_button_reload(scr_entref_t ref)
 
     stackPushBool(client->lastUsercmd.wbuttons & WBUTTON_RELOAD ? qtrue : qfalse);
 }
-extern customPlayerState_t customPlayerState[MAX_CLIENTS];
 
+
+void gsc_player_sendservercommand(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *message;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_sendservercommand() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+    //client_t *cl, int type, const char *fmt, ...
+    
+    if ( !stackGetParams("s", &message) )
+    {
+        stackError("gsc_player_sendservercommand() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+    
+    client_t *client = &svs.clients[id];
+
+    SV_SendServerCommand(client, 1, message);
+    stackPushBool(qtrue);
+}
+
+extern customPlayerState_t customPlayerState[MAX_CLIENTS];
+void gsc_player_setspeed(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    int speed;
+
+	if ( !stackGetParams("i", &speed) )
+	{
+		stackError("gsc_player_setspeed() argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_setspeed() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	if ( speed < 0 )
+	{
+		stackError("gsc_player_setspeed() param must be equal or above zero");
+		stackPushUndefined();
+		return;
+	}
+
+	customPlayerState[id].speed = speed;
+
+	stackPushBool(qtrue);
+}
 void gsc_player_setgravity(scr_entref_t ref)
 {
 	int id = ref.entnum;

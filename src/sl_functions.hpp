@@ -68,6 +68,9 @@ typedef void (*PM_AddEvent_t)(int newEvent);
 typedef int (*PM_FootstepType_t)(int pm_flags);
 typedef float (*PM_GetLandFactor_t)();
 
+typedef float (*Jump_Set_t)(float height);
+extern Jump_Set_t Jump_Set;
+
 // Scr
 typedef xfunction_t (*Scr_GetFunction_t)(const char** v_functionName, qboolean *v_developer);
 extern Scr_GetFunction_t Scr_GetFunction;

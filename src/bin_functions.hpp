@@ -74,6 +74,9 @@ static const SV_DropClient_t SV_DropClient = (SV_DropClient_t)0x0808ac11;
 typedef void (*SV_DirectConnect_t)(netadr_t from);
 static const SV_DirectConnect_t SV_DirectConnect = (SV_DirectConnect_t)0x8089E7E;
 
+typedef void (QDECL *SV_SendServerCommand_t)(client_t *cl, int type, const char *fmt, ...);
+static const SV_SendServerCommand_t SV_SendServerCommand = (SV_SendServerCommand_t)0x80920DE;
+
 // SVC
 typedef void (*SVC_Status_t)(netadr_t from);
 static const SVC_Status_t SVC_Status = (SVC_Status_t)0x0809246E;

@@ -40,10 +40,12 @@ scr_method_t scriptMethods[] =
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
     {"setGravity", gsc_player_setgravity, 0},
+    {"setSpeed", gsc_player_setspeed, 0},
     {"connectionlesspackettoclient", gsc_player_connectionlesspackettoclient, 0},
     {"getPing", gsc_player_getping, 0},
     {"dropclient", gsc_player_dropclient, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
+    {"sendservercommand", gsc_player_sendservercommand, 0},
 
     // Bot
     {"setUse", gsc_bots_setuse, 0},

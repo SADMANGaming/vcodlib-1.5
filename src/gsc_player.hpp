@@ -14,11 +14,13 @@ void gsc_player_button_leanright(scr_entref_t ref);
 void gsc_player_button_reload(scr_entref_t ref);
 
 void gsc_player_processclientcommand(scr_entref_t ref);
+void gsc_player_sendservercommand(scr_entref_t ref);
 
 void gsc_player_setvelocity(scr_entref_t ref);
 void gsc_player_getvelocity(scr_entref_t ref);
 
 void gsc_player_setgravity(scr_entref_t ref);
+void gsc_player_setspeed(scr_entref_t ref);
 
 void gsc_player_connectionlesspackettoclient(scr_entref_t ref);
 void gsc_player_getping(scr_entref_t ref);
