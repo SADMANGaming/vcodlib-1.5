@@ -190,6 +190,7 @@ void custom_Com_Init(char *commandLine)
     sv_fps = Cvar_FindVar("sv_fps");
     sv_maxRate = Cvar_FindVar("sv_maxRate");
     sv_showCommands = Cvar_FindVar("sv_showCommands");
+    fs_game = Cvar_FindVar("fs_game");
 
     // Register custom cvars
     Cvar_Get("libcoduo", "1", CVAR_SERVERINFO);
@@ -461,23 +462,34 @@ const char* hook_AuthorizeState(int arg)
 
 void custom_SV_DirectConnect(netadr_t from) {
 
-    // Q3FILL FIX
-    Com_DPrintf("custom_SV_DirectConnect()\n");
-    if(sv_fixq3fill->integer == 1)
-    {
+    int maxconnecttime = 10000; 
+
+    if (sv_fixq3fill->integer == 1) {
+        int connectingCount = 0;
+        client_t *duplicateCl = NULL;
+
         for (int i = 0; i < sv_maxclients->integer; i++) {
             client_t *cl = &svs.clients[i];
 
-            if (cl->state != CS_CONNECTED)
-                continue;
+            if (cl->state == CS_CONNECTED && NET_CompareBaseAdr(from, cl->netchan.remoteAddress)) {
+                int delta = svs.time - cl->lastPacketTime;
 
-            if (NET_CompareBaseAdr(from, cl->netchan.remoteAddress)) {
-                Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
-                NET_OutOfBandPrint(NS_SERVER, from, "Only one CONNECTING client allowed per IP.\n");
-                return;
+                if (delta < maxconnecttime) {
+                    connectingCount++;
+                    duplicateCl = cl;  // save the reference
+                }
             }
         }
+
+        if (connectingCount >= 1 && duplicateCl != NULL) {
+            Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
+            NET_OutOfBandPrint(NS_SERVER, from, "Only one CONNECTING client allowed per IP (for a short time).\n");
+            SV_DropClient(duplicateCl, "Duplicate IP looks like q3fill exploit!");
+            return;
+        }
     }
+
+
     // Allow connection
     SV_DirectConnect(from);
 }
@@ -581,7 +593,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     void *low, *high;
     FILE *fp;
     
-    if (fs_game && fs_game->string && *fs_game->string)
+    if (*fs_game->string)
         sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
     else
         sprintf(libPath, "main/game.mp.i386.so");
