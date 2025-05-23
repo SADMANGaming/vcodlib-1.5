@@ -607,7 +607,7 @@ void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
     if (badRconPassword)
     {
         Com_Printf("Bad rcon from %s\n", NET_AdrToString(from));
-        NET_OutOfBandPrint(NS_SERVER, from, "Bad rconpassword");
+        NET_OutOfBandPrint(NS_CLIENT, from, "print\nBad rconpassword");
         return;
     }
     
