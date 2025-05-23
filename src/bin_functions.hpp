@@ -110,4 +110,11 @@ static const NetadrToSockadr_t NetadrToSockadr = (NetadrToSockadr_t)0x080d4a0c;
 typedef qboolean (*NET_StringToAdr_t)(const char *s, netadr_t *a);
 static const NET_StringToAdr_t NET_StringToAdr = (NET_StringToAdr_t)0x080844e0;
 
+typedef const char* (*NET_idkPrint_t)(const char *format, ...);
+static const NET_idkPrint_t NET_idkPrint = (NET_idkPrint_t)0x806FC10;
+
+//Cmd
+typedef void (*Cmd_AddCommand_t)(const char *cmd_name, xcommand_t function);
+static const Cmd_AddCommand_t Cmd_AddCommand = (Cmd_AddCommand_t)0x806043E; //txt str
+
 #endif

@@ -46,14 +46,16 @@ cvar_t *jump_height;
 cvar_t *sv_allowRcon;
 cvar_t *fs_svrPaks;
 cvar_t *sv_fixq3fill;
+cvar_t *g_playerEject;
 
 cHook *hook_com_init;
 cHook *hook_gametype_scripts;
-//cHook *hook_sv_addoperatorcommands;
+cHook *hook_sv_addoperatorcommands;
 cHook *hook_sys_loaddll;
 cHook *hook_SV_BotUserMove;
 cHook *hook_clientendframe;
 cHook *hook_sv_begindownload_f;
+cHook *hook_PM_FlyMove;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -163,6 +165,8 @@ AngleNormalize180_t AngleNormalize180;
 BG_CheckProneValid_t BG_CheckProneValid;
 trap_SendServerCommand_t trap_SendServerCommand;
 Jump_Set_t Jump_Set;
+PM_NoclipMove_t PM_NoclipMove;
+StuckInClient_t StuckInClient;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -207,6 +211,7 @@ void custom_Com_Init(char *commandLine)
     sv_allowRcon = Cvar_Get("sv_allowRcon", "1", CVAR_ARCHIVE);
     fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
     sv_fixq3fill = Cvar_Get("sv_fixq3fill", "0", CVAR_ARCHIVE);
+    g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
 }
 
 
@@ -451,6 +456,22 @@ int custom_ClientEndFrame(gentity_t *ent)
     return ret;
 }
 
+
+void custom_PM_FlyMove()
+{
+    if (sv_spectator_noclip->integer)
+    {
+        PM_NoclipMove();
+        return;
+    }
+
+    hook_PM_FlyMove->unhook();
+    void (*PM_FlyMove)();
+    *(int*)&PM_FlyMove = hook_PM_FlyMove->from;
+    PM_FlyMove();
+    hook_PM_FlyMove->hook();
+}
+
 const char* hook_AuthorizeState(int arg)
 {
     const char* s = Cmd_Argv(arg);
@@ -495,19 +516,28 @@ void custom_SV_DirectConnect(netadr_t from) {
 }
 
 
+qboolean hook_StuckInClient(gentity_s *self)
+{
+    if(!g_playerEject->integer)
+        return qfalse;
+    return StuckInClient(self);
+}
 
+void meh()
+{
+    Com_Printf("meh\n");
+}
 
-
-/*void custom_SV_AddOperatorCommands()
+void custom_SV_AddOperatorCommands()
 {
     hook_sv_addoperatorcommands->unhook();
     void (*SV_AddOperatorCommands)();
     *(int *)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
     SV_AddOperatorCommands();
 
-
+    Cmd_AddCommand("meh", meh);
     hook_sv_addoperatorcommands->hook();
-}*/
+}
 
 
 
@@ -565,17 +595,24 @@ void ServerCrash(int sig)
     exit(1);
 }
 
-/*void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
+void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
 {
     char* password = Cmd_Argv(1);
 
-    if (sv_allowRcon->integer == 0) // i know what i am doing
+    if (sv_allowRcon->integer == 0)
 	return;
 
     qboolean badRconPassword = !strlen(sv_rconPassword->string) || !str_iseq(password, sv_rconPassword->string);
-
+    
+    if (badRconPassword)
+    {
+        Com_Printf("Bad rcon from %s\n", NET_AdrToString(from));
+        NET_OutOfBandPrint(NS_SERVER, from, "Bad rconpassword");
+        return;
+    }
+    
     SVC_RemoteCommand(from, msg);
-}*/
+}
 
 void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
@@ -691,35 +728,33 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     AngleNormalize180Accurate = (AngleNormalize180Accurate_t)dlsym(libHandle, "AngleNormalize180Accurate");
     AngleNormalize180 = (AngleNormalize180_t)dlsym(libHandle, "AngleNormalize180");
     BG_CheckProneValid = (BG_CheckProneValid_t)dlsym(libHandle, "BG_CheckProneValid");
-
     Jump_Set = (Jump_Set_t)((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0xEDD);
-
+    PM_NoclipMove = (PM_NoclipMove_t)((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1EA7);
+    StuckInClient = (StuckInClient_t)dlsym(libHandle, "StuckInClient");
     trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(libHandle, "trap_SendServerCommand");
     ////
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
+    //Jump
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked); //UO:sub_24B7C
     resume_addr_PM_WalkMove = (uintptr_t)dlsym(libHandle, "PM_GetEffectiveStance") + 0x18AA;
     hook_jmp((int)dlsym(libHandle, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
     resume_addr_PM_SlideMove = (uintptr_t)dlsym(libHandle, "PM_SlideMove") + 0xBA5;
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
-
     hook_call((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10B0, (int)hook_Jump_Check);
 
-    if (sv_spectator_noclip->integer == 1) {
-        *(int *)((char *)dlsym(libHandle, "SpectatorThink") + 0x21B + 2) = 0; // skipping 2 bytes
-    }
-
-
-    *(float*)((char *)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10AC) = jump_height->value;
+    hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x1C4FF, (int)hook_StuckInClient);
 
 
     hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
     hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_clientendframe->hook();
+    hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1354, (int)custom_PM_FlyMove);
+    hook_PM_FlyMove->hook();
+
     return libHandle;
 }
 
@@ -755,7 +790,7 @@ public:
         //Q3fill fix | Not sure if it has any bugs. I wait till someone reports 
         hook_call(0x0809370B, (int)custom_SV_DirectConnect);
 
-        //hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
+        hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
 
 
         hook_com_init = new cHook(0x08070ef8, (int)custom_Com_Init);
@@ -765,13 +800,11 @@ public:
         hook_sys_loaddll = new cHook(0x080d3cdd, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook(); 
 
-//        hook_sv_begindownload_f = new cHook(0x0808B456, (int)custom_SV_BeginDownload_f);
-//        hook_sv_begindownload_f->hook();
+        hook_sv_begindownload_f = new cHook(0x0808B456, (int)custom_SV_BeginDownload_f);
+        hook_sv_begindownload_f->hook();
 
-        //hook_sv_addoperatorcommands = new cHook(0x8084A3C, (int)custom_SV_AddOperatorCommands);
-        //hook_sv_addoperatorcommands->hook();
-        // 08093798
-
+        hook_sv_addoperatorcommands = new cHook(0x808877F, (int)custom_SV_AddOperatorCommands);
+        hook_sv_addoperatorcommands->hook();
 
 
         printf("> [PLUGIN LOADED]\n");

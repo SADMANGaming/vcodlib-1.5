@@ -67,9 +67,13 @@ typedef void (*PM_trace_t)(trace_t *results, const vec3_t start, const vec3_t mi
 typedef void (*PM_AddEvent_t)(int newEvent);
 typedef int (*PM_FootstepType_t)(int pm_flags);
 typedef float (*PM_GetLandFactor_t)();
+typedef void (*PM_NoclipMove_t)();
 
 typedef float (*Jump_Set_t)(float height);
 extern Jump_Set_t Jump_Set;
+
+typedef qboolean (*StuckInClient_t)(gentity_s *self);
+extern StuckInClient_t StuckInClient;
 
 // Scr
 typedef xfunction_t (*Scr_GetFunction_t)(const char** v_functionName, qboolean *v_developer);
