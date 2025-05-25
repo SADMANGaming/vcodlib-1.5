@@ -975,7 +975,10 @@ typedef struct customPlayerState_s
     int speed;
 } customPlayerState_t;
 
-
+typedef struct customChallenge_s
+{
+    int ignoredCount;
+} customChallenge_t;
 
 ////
 ////

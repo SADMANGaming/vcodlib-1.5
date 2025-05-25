@@ -47,6 +47,8 @@ cvar_t *sv_allowRcon;
 cvar_t *fs_svrPaks;
 cvar_t *sv_fixq3fill;
 cvar_t *g_playerEject;
+cvar_t *sv_connectMessage;
+cvar_t *sv_connectMessageChallenges;
 
 cHook *hook_com_init;
 cHook *hook_gametype_scripts;
@@ -197,7 +199,7 @@ void custom_Com_Init(char *commandLine)
     fs_game = Cvar_FindVar("fs_game");
 
     // Register custom cvars
-    Cvar_Get("vcodlib", "1.5", CVAR_SERVERINFO);
+    Cvar_Get("libcoduo", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     
@@ -212,6 +214,8 @@ void custom_Com_Init(char *commandLine)
     fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
     sv_fixq3fill = Cvar_Get("sv_fixq3fill", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
+    sv_connectMessage = Cvar_Get("sv_connectMessage", "", CVAR_ARCHIVE);
+    sv_connectMessageChallenges = Cvar_Get("sv_connectMessageChallenges", "1", CVAR_ARCHIVE);
 }
 
 
@@ -385,7 +389,7 @@ void custom_SV_BeginDownload_f(client_t *cl)
     hook_sv_begindownload_f->hook();
 }
 
-
+customChallenge_t customChallenge[MAX_CHALLENGES];
 customPlayerState_t customPlayerState[MAX_CLIENTS];
 void custom_SV_BotUserMove(client_t *client)
 {
@@ -509,6 +513,25 @@ void custom_SV_DirectConnect(netadr_t from) {
             return;
         }
     }
+
+    char* userinfo;
+    userinfo = Cmd_Argv(1);
+    std::stringstream ss;
+    ss << "connect \"" << userinfo << "\"";
+
+   if (*sv_connectMessage->string && sv_connectMessageChallenges->integer) {
+    int challengeVal = atoi(Info_ValueForKey(userinfo, "challenge"));
+    for (int i = 0; i < MAX_CHALLENGES; i++) {
+        if (NET_CompareAdr(from, svs.challenges[i].adr) && 
+            svs.challenges[i].challenge == challengeVal &&
+            customChallenge[i].ignoredCount < sv_connectMessageChallenges->integer) {
+            
+            NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
+            customChallenge[i].ignoredCount++;
+            return;
+        }
+    }
+}
 
 
     // Allow connection

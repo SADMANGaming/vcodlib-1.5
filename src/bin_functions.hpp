@@ -87,6 +87,9 @@ static const SVC_Info_t SVC_Info = (SVC_Info_t)0x08092A74;
 typedef void (*SVC_RemoteCommand_t)(netadr_t from, msg_t *msg);
 static const SVC_RemoteCommand_t SVC_RemoteCommand = (SVC_RemoteCommand_t)0x080930D0;
 
+//Info
+typedef char* (*Info_ValueForKey_t)(const char *s, const char *key);
+static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x8086397;
 
 // NET
 typedef const char * (*NET_AdrToString_t)(netadr_t a);
