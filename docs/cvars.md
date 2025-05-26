@@ -48,7 +48,7 @@
 * `fs_callbacks_additional`  
   * Type: String  
   * Default: `""`  
-  * Effect: Specifies an additional callback script file that the server will load on startup (without `.gsc` file extension).
+  * Effect: Specifies an additional callback script file that the server will load on startup (without `.gsc` file extension. Example: set fs_callbacks_additional "callback_custom").
 
 * `fs_svrPaks`  
   * Type: String  
