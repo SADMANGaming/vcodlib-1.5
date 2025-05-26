@@ -8,8 +8,8 @@ Any problems ? Discord : https://discord.gg/8sr5Yg4R
 ___
 
 ## What's new?
-- [Added cvars](doc/cvars.md)
-- [Bug fixes](doc/bugfixes.md)
+- [Added cvars](docs/cvars.md)
+- [Bug fixes](docs/bugfixes.md)
 
 #### Credits
 
