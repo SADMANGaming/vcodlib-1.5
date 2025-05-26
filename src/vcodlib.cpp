@@ -35,6 +35,8 @@ cvar_t *sv_pure;
 cvar_t *sv_rconPassword;
 cvar_t *sv_serverid;
 cvar_t *sv_showCommands;
+cvar_t *net_ip;
+cvar_t *net_port;
 
 // Custom cvars
 cvar_t *sv_cracked;
@@ -197,6 +199,9 @@ void custom_Com_Init(char *commandLine)
     sv_maxRate = Cvar_FindVar("sv_maxRate");
     sv_showCommands = Cvar_FindVar("sv_showCommands");
     fs_game = Cvar_FindVar("fs_game");
+    // net
+    net_ip = Cvar_FindVar("net_ip");
+    net_port = Cvar_FindVar("net_port");
 
     // Register custom cvars
     Cvar_Get("vcodlib", "1", CVAR_SERVERINFO);
@@ -551,6 +556,18 @@ void meh()
     Com_Printf("meh\n");
 }
 
+
+void getserverip()
+{
+    const char* ip = net_ip->string;
+    int port = net_port->integer;
+
+    if (!ip || !*ip)
+        ip = "localhost";
+
+    Com_Printf("Server IP:Port is: %s:%d\n", ip, port);
+}
+
 void custom_SV_AddOperatorCommands()
 {
     hook_sv_addoperatorcommands->unhook();
@@ -559,6 +576,7 @@ void custom_SV_AddOperatorCommands()
     SV_AddOperatorCommands();
 
     Cmd_AddCommand("meh", meh);
+    Cmd_AddCommand("getserverip", getserverip);
     hook_sv_addoperatorcommands->hook();
 }
 
