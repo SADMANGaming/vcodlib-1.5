@@ -7,11 +7,13 @@ Supported Call of Duty version: **1.5**
 Any problems ? Discord : https://discord.gg/8sr5Yg4R
 ___
 
+## What's new?
+- [Added cvars](doc/cvars.md)
+- [Bug fixes](doc/bugfixes.md)
+
 #### Credits
 
 Websites:
-
-
 - [libcod1](https://github.com/cod1dev/libcod1/)
 - [zk_libcod](https://github.com/ibuddieat/zk_libcod/)
 - [CoDExtended](https://github.com/xtnded/codextended/)
