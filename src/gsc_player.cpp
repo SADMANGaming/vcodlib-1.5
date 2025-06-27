@@ -359,3 +359,26 @@ void gsc_player_setgravity(scr_entref_t ref)
 
 	stackPushBool(qtrue);
 }
+
+void gsc_player_getip(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_getip() entity %i is not a player", id);
+        Scr_AddUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+    char ip[16];
+    
+    snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
+        client->netchan.remoteAddress.ip[0],
+        client->netchan.remoteAddress.ip[1],
+        client->netchan.remoteAddress.ip[2],
+        client->netchan.remoteAddress.ip[3]);
+
+    Scr_AddString(ip);
+}
