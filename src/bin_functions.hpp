@@ -115,6 +115,9 @@ static const SVC_RemoteCommand_t SVC_RemoteCommand = (SVC_RemoteCommand_t)0x0809
 typedef char* (*Info_ValueForKey_t)(const char *s, const char *key);
 static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x8086397;
 
+typedef void (*Info_SetValueForKey_t)(char *s, const char *key, const char *value);
+static const Info_SetValueForKey_t Info_SetValueForKey = (Info_SetValueForKey_t)0x8086855;
+
 // NET
 typedef const char * (*NET_AdrToString_t)(netadr_t a);
 static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08083e10;

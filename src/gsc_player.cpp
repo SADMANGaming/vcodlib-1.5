@@ -382,3 +382,28 @@ void gsc_player_getip(scr_entref_t ref)
 
     Scr_AddString(ip);
 }
+
+void gsc_player_renamebot(scr_entref_t ref) {
+    int id = ref.entnum;
+	const char* key = Scr_GetString(0);
+	char userinfo[MAX_STRING_CHARS];
+	getuserinfo(id, userinfo, sizeof(userinfo));
+	
+	Info_SetValueForKey(userinfo, "name", key);
+	setuserinfo(id, userinfo);
+	
+	client_t* cl = &svs.clients[id];
+	if(cl) {
+		memcpy(&cl->name, key, 32);
+		cl->name[31] = '\0';
+	}
+}
+
+void gsc_player_kickbot(scr_entref_t ref) { //weird playercmd > bot
+    int id = ref.entnum;
+	client_t* cl = &svs.clients[id];
+	if(cl) {
+		SV_DropClient(cl, "");
+		cl->state = CS_FREE;
+	}
+}

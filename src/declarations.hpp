@@ -43,6 +43,7 @@
 #define MAX_DOWNLOAD_BLKSIZE        2048
 #define HEADER_RATE_BYTES 48
 #define MAX_BPS_WINDOW              20
+#define MAX_STRING_CHARS    1024
 
 #define CVAR_NOFLAG         0           // 0x0000
 #define CVAR_ARCHIVE        (1 << 0)    // 0x0001

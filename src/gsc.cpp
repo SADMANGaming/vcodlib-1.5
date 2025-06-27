@@ -47,6 +47,8 @@ scr_method_t scriptMethods[] =
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"sendservercommand", gsc_player_sendservercommand, 0},
     {"getIP", gsc_player_getip, 0},
+    {"kickbot", gsc_player_kickbot, 0},
+    {"renameBot", gsc_player_renamebot, 0},
 
     // Bot
     {"setUse", gsc_bots_setuse, 0},

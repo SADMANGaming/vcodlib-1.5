@@ -178,6 +178,8 @@ Jump_Set_t Jump_Set;
 PM_NoclipMove_t PM_NoclipMove;
 StuckInClient_t StuckInClient;
 Q_strncpyz_t Q_strncpyz;
+getuserinfo_t getuserinfo;
+setuserinfo_t setuserinfo;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -1217,6 +1219,9 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_clientendframe->hook();
     hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1354, (int)custom_PM_FlyMove);
     hook_PM_FlyMove->hook();
+
+    getuserinfo = (getuserinfo_t)0x80903B5;
+    setuserinfo = (setuserinfo_t)0x809030B;
 
     return libHandle;
 }
