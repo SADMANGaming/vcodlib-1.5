@@ -178,8 +178,6 @@ Jump_Set_t Jump_Set;
 PM_NoclipMove_t PM_NoclipMove;
 StuckInClient_t StuckInClient;
 Q_strncpyz_t Q_strncpyz;
-getuserinfo_t getuserinfo;
-setuserinfo_t setuserinfo;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -526,7 +524,7 @@ void custom_SV_DirectConnect(netadr_t from) {
         if (connectingCount >= 1 && duplicateCl != NULL) {
             Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
             NET_OutOfBandPrint(NS_SERVER, from, "Only one CONNECTING client allowed per IP (for a short time).\n");
-            SV_DropClient(duplicateCl, "Duplicate IP looks like q3fill exploit!");
+            SV_DropClient(duplicateCl, "Duplicate IP detected!");
             return;
         }
     }
@@ -1197,11 +1195,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
-    //Fastdownload
-    hook_jmp(0x8098A34, (int)custom_SV_SendClientMessages);
-    hook_jmp(0x808B8A9, (int)custom_SV_WriteDownloadToClient);
-    hook_jmp(0x8097A2F, (int)custom_SV_SendMessageToClient);
-    hook_jmp(0x808AE44, (int)custom_SV_SendClientGameState);//sv_forcedownload
+
 
     //Jump
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked); //UO:sub_24B7C
@@ -1220,8 +1214,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1354, (int)custom_PM_FlyMove);
     hook_PM_FlyMove->hook();
 
-    getuserinfo = (getuserinfo_t)0x80903B5;
-    setuserinfo = (setuserinfo_t)0x809030B;
+
 
     return libHandle;
 }
@@ -1250,10 +1243,15 @@ public:
 
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
-
         hook_call(0x080894c5, (int)hook_AuthorizeState);
         hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
         hook_call(0x0809db31, (int)Scr_GetCustomMethod);
+    
+        //Fastdownload
+        hook_jmp(0x8098A34, (int)custom_SV_SendClientMessages);
+        hook_jmp(0x808B8A9, (int)custom_SV_WriteDownloadToClient);
+        hook_jmp(0x8097A2F, (int)custom_SV_SendMessageToClient);
+        hook_jmp(0x808AE44, (int)custom_SV_SendClientGameState);//sv_forcedownload
 
         //Q3fill fix | Not sure if it has any bugs. I wait till someone reports 
         hook_call(0x0809370B, (int)custom_SV_DirectConnect);

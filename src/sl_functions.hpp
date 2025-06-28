@@ -140,10 +140,5 @@ typedef int (*trap_GetArchivedClientInfo_t)(int clientNum, int archiveTime, play
 typedef void (*trap_SendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
 extern trap_SendServerCommand_t trap_SendServerCommand;
 
-//xtnded compatibility
-typedef void (*getuserinfo_t)( int index, char *buffer, int bufferSize );
-extern getuserinfo_t getuserinfo;
-typedef void (*setuserinfo_t)( int,const char*);
-extern setuserinfo_t setuserinfo;
 
 #endif

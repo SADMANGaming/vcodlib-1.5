@@ -1,6 +1,16 @@
 #ifndef _BIN_FUNCTIONS_HPP_
 #define _BIN_FUNCTIONS_HPP_
 
+// Get
+//xtnded compatibility
+typedef void (*getuserinfo_t)( int index, char *buffer, int bufferSize );
+static const getuserinfo_t getuserinfo = (getuserinfo_t)0x80903B5;
+
+typedef void (*setuserinfo_t)( int,const char*);
+static const setuserinfo_t setuserinfo = (setuserinfo_t)0x809030B;
+//
+///
+
 // Cvar
 typedef cvar_t* (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x08072a7c;
