@@ -26,5 +26,7 @@ void gsc_player_getip(scr_entref_t ref);
 void gsc_player_connectionlesspackettoclient(scr_entref_t ref);
 void gsc_player_getping(scr_entref_t ref);
 void gsc_player_dropclient(scr_entref_t ref);
+void gsc_player_renamebot(scr_entref_t ref);
+void gsc_player_kickbot(scr_entref_t ref);
 
 #endif

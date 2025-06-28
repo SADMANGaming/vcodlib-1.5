@@ -54,3 +54,18 @@
   * Type: String  
   * Default: `""`  
   * Effect: List of server PAKs that will not be downloaded by clients.
+
+* `sv_downloadForce`  
+  * Type: String  
+  * Default: `"0"`  
+  * Effect: Force cl_allowdownload cvar on client
+
+* `sv_downloadNotifications`  
+  * Type: String  
+  * Default: `"0"`  
+  * Effect: Shows which file is currently downloaded by the client
+
+* `sv_fastDownload`  
+  * Type: String  
+  * Default: `"0"`  
+  * Effect: Makes UDP download system faster

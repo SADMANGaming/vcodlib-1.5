@@ -39,6 +39,11 @@
 #define MAX_HUDELEMS_ARCHIVAL       MAX_HUDELEMENTS
 #define MAX_HUDELEMS_CURRENT        MAX_HUDELEMENTS
 #define MAX_CVAR_VALUE_STRING       256
+#define MAX_DOWNLOAD_BLKSIZE_FAST   0x2000 // See https://github.com/ibuddieat/zk_libcod/blob/dff123fad25d7b46d65685e9bca2111c8946a36e/code/declarations.hpp#L60
+#define MAX_DOWNLOAD_BLKSIZE        2048
+#define HEADER_RATE_BYTES 48
+#define MAX_BPS_WINDOW              20
+#define MAX_STRING_CHARS    1024
 
 #define CVAR_NOFLAG         0           // 0x0000
 #define CVAR_ARCHIVE        (1 << 0)    // 0x0001
@@ -755,7 +760,7 @@ typedef struct svEntity_s
     int lastCluster;
     byte gap[0x18];
 } svEntity_t;
-
+/*
 typedef struct
 {
     serverState_t state;
@@ -775,6 +780,35 @@ typedef struct
     byte gap_0x83CCC50[0xBC];
     char gametype[MAX_QPATH];
 } server_t;
+*/
+
+typedef struct
+{
+    serverState_t state;
+    qboolean restarting;
+    int start_frameTime;
+    int	checksumFeed;
+    int timeResidual;
+    byte gap[0x404];
+    char *configstrings[MAX_CONFIGSTRINGS];
+    byte pad[0x60FFC];
+    char *entityParsePoint;
+    gentity_t *gentities;
+    int gentitySize;
+    int	num_entities;
+    playerState_t *gameClients;
+    int gameClientSize;
+    int skelTimeStamp;
+    int	bpsWindow[MAX_BPS_WINDOW];
+    int	bpsWindowSteps;
+    int	bpsTotalBytes;
+    int	bpsMaxBytes;
+    int	ubpsWindow[MAX_BPS_WINDOW];
+    int	ubpsTotalBytes;
+    int	ubpsMaxBytes;
+    float ucompAve;
+    int	ucompNum;
+} server_t; // TODO: Verify, seems too big
 
 typedef struct weaponinfo_t
 {
@@ -942,7 +976,7 @@ static_assert((sizeof(gentity_t) == 796), "ERROR: gentity_t size invalid");
 static_assert((sizeof(hudElemState_t) == 6944), "ERROR: hudElemState_t size invalid");
 static_assert((sizeof(objective_t) == 28), "ERROR: objective_t size invalid");
 static_assert((sizeof(trace_t) == 48), "ERROR: trace_t size invalid");
-static_assert((sizeof(server_t) == 398636), "ERROR: server_t size invalid");
+static_assert((sizeof(server_t) == 406764), "ERROR: server_t size invalid"); //398636, i made 406764 because only then fastdl functions work TODO
 static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size invalid");
 static_assert((sizeof(svEntity_t) == 380), "ERROR: svEntity_t size invalid");
 static_assert((sizeof(archivedEntity_t) == 276), "ERROR: archivedEntity_t size invalid");
