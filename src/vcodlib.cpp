@@ -566,7 +566,6 @@ void meh()
     Com_Printf("meh\n");
 }
 
-
 void getserverip()
 {
     const char* ip = net_ip->string;
@@ -578,6 +577,48 @@ void getserverip()
     Com_Printf("Server IP:Port is: %s:%d\n", ip, port);
 }
 
+
+static void vcl_version(void)
+{
+    printf("\n==============================\n");
+    printf("[VCODLIB] > FOR COD 1.5\n");
+    printf("==============================\n");
+}
+
+
+static void custom_SV_DumpUser_f() {
+    client_t *cl;
+    int clientNum;
+
+    if (!com_sv_running->integer) {
+        Com_Printf("Server is not running.\n");
+        return;
+    }
+
+    if (Cmd_Argc() != 2) {
+        Com_Printf("Usage: info <clientnum>\n");
+        return;
+    }
+
+    clientNum = atoi(Cmd_Argv(1));
+
+    if (clientNum < 0 || clientNum >= sv_maxclients->integer) {
+        Com_Printf("Invalid client number: %d\n", clientNum);
+        return;
+    }
+
+    cl = &svs.clients[clientNum];
+
+    if (!cl || cl->state < CS_CONNECTED) {
+        Com_Printf("Player %d is not on the server or not connected.\n", clientNum);
+        return;
+    }
+
+    Com_Printf("userinfo for client %d\n", clientNum);
+    Com_Printf("-----------------------\n");
+    Info_Print(cl->userinfo);
+}
+
 void custom_SV_AddOperatorCommands()
 {
     hook_sv_addoperatorcommands->unhook();
@@ -585,8 +626,10 @@ void custom_SV_AddOperatorCommands()
     *(int *)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
     SV_AddOperatorCommands();
 
-    Cmd_AddCommand("meh", meh);
+    Cmd_AddCommand("vcodlib", vcl_version);
     Cmd_AddCommand("getserverip", getserverip);
+    Cmd_RemoveCommand("dumpuser");
+    Cmd_AddCommand("dumpuser", custom_SV_DumpUser_f);
     hook_sv_addoperatorcommands->hook();
 }
 

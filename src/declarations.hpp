@@ -848,7 +848,7 @@ typedef struct weaponinfo_t
 } weaponinfo_t;
 
 
-/////////// DIRTAV
+/////////// DIRTRAV
 
 struct directory_t
 {
