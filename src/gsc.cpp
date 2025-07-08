@@ -5,6 +5,15 @@
 
 scr_function_t scriptFunctions[] =
 {
+#if ENABLE_UNSAFE == 1
+    {"file_exists", gsc_utils_file_exists, 0},
+    {"fopen", gsc_utils_fopen, 0},
+    {"fwrite", gsc_utils_fwrite, 0},
+    {"fread", gsc_utils_fread, 0},
+    {"fclose", gsc_utils_fclose, 0},
+    {"system", gsc_utils_system, 0},
+#endif
+
 
     {"testFunction", gsc_testfunction, 0},
     {"getsubstr", gsc_utils_getsubstr, 0},

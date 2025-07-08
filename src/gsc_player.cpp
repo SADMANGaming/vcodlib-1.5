@@ -380,30 +380,73 @@ void gsc_player_getip(scr_entref_t ref)
         client->netchan.remoteAddress.ip[2],
         client->netchan.remoteAddress.ip[3]);
 
-    Scr_AddString(ip);
+    stackPushString(ip);
 }
 
-void gsc_player_renamebot(scr_entref_t ref) {
-    int id = ref.entnum;
-	const char* key = Scr_GetString(0);
+
+void gsc_player_renamebot(scr_entref_t ref)
+{
+	int id = ref.entnum;
+	char *name;
+
+	if (!stackGetParams("s", &name))
+	{
+		stackError("gsc_player_renamebot() argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	if (strlen(name) > 31)
+	{
+		stackError("gsc_player_renamebot() player name is longer than 31 characters");
+		stackPushUndefined();
+		return;
+	}
+
+	if (id >= MAX_CLIENTS)
+	{
+		stackError("gsc_player_renamebot() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
 	char userinfo[MAX_STRING_CHARS];
 	getuserinfo(id, userinfo, sizeof(userinfo));
-	
-	Info_SetValueForKey(userinfo, "name", key);
+	Info_SetValueForKey(userinfo, "name", name);
 	setuserinfo(id, userinfo);
-	
+
 	client_t* cl = &svs.clients[id];
-	if(cl) {
-		memcpy(&cl->name, key, 32);
-		cl->name[31] = '\0';
-	}
+
+	memcpy(cl->name, name, 32);
+	cl->name[31] = '\0';
+
+	stackPushBool(qtrue);
 }
 
-void gsc_player_kickbot(scr_entref_t ref) { //weird playercmd > bot
+
+void gsc_player_kickbot(scr_entref_t ref)
+{
     int id = ref.entnum;
-	client_t* cl = &svs.clients[id];
-	if(cl) {
-		SV_DropClient(cl, "");
-		cl->state = CS_FREE;
-	}
+    char *reason;
+
+    if ( Scr_GetNumParam() > 0 && !stackGetParams("s", &reason) )
+    {
+        stackError("gsc_player_kickbot() argument has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_kickbot() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+	SV_DropClient(client, "");
+	client->state = CS_FREE;
+
+    stackPushBool(qtrue);
 }

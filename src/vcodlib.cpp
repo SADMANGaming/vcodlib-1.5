@@ -178,8 +178,6 @@ Jump_Set_t Jump_Set;
 PM_NoclipMove_t PM_NoclipMove;
 StuckInClient_t StuckInClient;
 Q_strncpyz_t Q_strncpyz;
-getuserinfo_t getuserinfo;
-setuserinfo_t setuserinfo;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -526,7 +524,7 @@ void custom_SV_DirectConnect(netadr_t from) {
         if (connectingCount >= 1 && duplicateCl != NULL) {
             Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
             NET_OutOfBandPrint(NS_SERVER, from, "Only one CONNECTING client allowed per IP (for a short time).\n");
-            SV_DropClient(duplicateCl, "Duplicate IP looks like q3fill exploit!");
+            SV_DropClient(duplicateCl, "Duplicate IP detected!");
             return;
         }
     }
@@ -568,7 +566,6 @@ void meh()
     Com_Printf("meh\n");
 }
 
-
 void getserverip()
 {
     const char* ip = net_ip->string;
@@ -580,6 +577,48 @@ void getserverip()
     Com_Printf("Server IP:Port is: %s:%d\n", ip, port);
 }
 
+
+static void vcl_version(void)
+{
+    printf("\n==============================\n");
+    printf("[VCODLIB] > FOR COD 1.5\n");
+    printf("==============================\n");
+}
+
+
+static void custom_SV_DumpUser_f() {
+    client_t *cl;
+    int clientNum;
+
+    if (!com_sv_running->integer) {
+        Com_Printf("Server is not running.\n");
+        return;
+    }
+
+    if (Cmd_Argc() != 2) {
+        Com_Printf("Usage: info <clientnum>\n");
+        return;
+    }
+
+    clientNum = atoi(Cmd_Argv(1));
+
+    if (clientNum < 0 || clientNum >= sv_maxclients->integer) {
+        Com_Printf("Invalid client number: %d\n", clientNum);
+        return;
+    }
+
+    cl = &svs.clients[clientNum];
+
+    if (!cl || cl->state < CS_CONNECTED) {
+        Com_Printf("Player %d is not on the server or not connected.\n", clientNum);
+        return;
+    }
+
+    Com_Printf("userinfo for client %d\n", clientNum);
+    Com_Printf("-----------------------\n");
+    Info_Print(cl->userinfo);
+}
+
 void custom_SV_AddOperatorCommands()
 {
     hook_sv_addoperatorcommands->unhook();
@@ -587,8 +626,10 @@ void custom_SV_AddOperatorCommands()
     *(int *)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
     SV_AddOperatorCommands();
 
-    Cmd_AddCommand("meh", meh);
+    Cmd_AddCommand("vcodlib", vcl_version);
     Cmd_AddCommand("getserverip", getserverip);
+    Cmd_RemoveCommand("dumpuser");
+    Cmd_AddCommand("dumpuser", custom_SV_DumpUser_f);
     hook_sv_addoperatorcommands->hook();
 }
 
@@ -1197,11 +1238,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
-    //Fastdownload
-    hook_jmp(0x8098A34, (int)custom_SV_SendClientMessages);
-    hook_jmp(0x808B8A9, (int)custom_SV_WriteDownloadToClient);
-    hook_jmp(0x8097A2F, (int)custom_SV_SendMessageToClient);
-    hook_jmp(0x808AE44, (int)custom_SV_SendClientGameState);//sv_forcedownload
+
 
     //Jump
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked); //UO:sub_24B7C
@@ -1220,8 +1257,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1354, (int)custom_PM_FlyMove);
     hook_PM_FlyMove->hook();
 
-    getuserinfo = (getuserinfo_t)0x80903B5;
-    setuserinfo = (setuserinfo_t)0x809030B;
+
 
     return libHandle;
 }
@@ -1250,10 +1286,15 @@ public:
 
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
-
         hook_call(0x080894c5, (int)hook_AuthorizeState);
         hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
         hook_call(0x0809db31, (int)Scr_GetCustomMethod);
+    
+        //Fastdownload
+        hook_jmp(0x8098A34, (int)custom_SV_SendClientMessages);
+        hook_jmp(0x808B8A9, (int)custom_SV_WriteDownloadToClient);
+        hook_jmp(0x8097A2F, (int)custom_SV_SendMessageToClient);
+        hook_jmp(0x808AE44, (int)custom_SV_SendClientGameState);//sv_forcedownload
 
         //Q3fill fix | Not sure if it has any bugs. I wait till someone reports 
         hook_call(0x0809370B, (int)custom_SV_DirectConnect);

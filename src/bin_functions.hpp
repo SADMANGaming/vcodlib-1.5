@@ -1,6 +1,16 @@
 #ifndef _BIN_FUNCTIONS_HPP_
 #define _BIN_FUNCTIONS_HPP_
 
+// Get
+//xtnded compatibility
+typedef void (*getuserinfo_t)( int index, char *buffer, int bufferSize );
+static const getuserinfo_t getuserinfo = (getuserinfo_t)0x80903B5;
+
+typedef void (*setuserinfo_t)( int,const char*);
+static const setuserinfo_t setuserinfo = (setuserinfo_t)0x809030B;
+//
+///
+
 // Cvar
 typedef cvar_t* (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x08072a7c;
@@ -118,6 +128,9 @@ static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x8086397
 typedef void (*Info_SetValueForKey_t)(char *s, const char *key, const char *value);
 static const Info_SetValueForKey_t Info_SetValueForKey = (Info_SetValueForKey_t)0x8086855;
 
+typedef void (*Info_Print_t)(const char *s);
+static const Info_Print_t Info_Print = (Info_Print_t)0x080702ec;
+
 // NET
 typedef const char * (*NET_AdrToString_t)(netadr_t a);
 static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08083e10;
@@ -146,6 +159,9 @@ static const NET_idkPrint_t NET_idkPrint = (NET_idkPrint_t)0x806FC10;
 //Cmd
 typedef void (*Cmd_AddCommand_t)(const char *cmd_name, xcommand_t function);
 static const Cmd_AddCommand_t Cmd_AddCommand = (Cmd_AddCommand_t)0x806043E; //txt str
+
+typedef void (*Cmd_RemoveCommand_t)(const char* cmd_name);
+static const Cmd_RemoveCommand_t Cmd_RemoveCommand = (Cmd_RemoveCommand_t)0x080604d4;
 
 //MSG
 typedef int (*MSG_WriteBitsCompress_t)(const byte *datasrc, byte *buffdest, int bytecount);
