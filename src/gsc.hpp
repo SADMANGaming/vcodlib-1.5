@@ -28,6 +28,7 @@
 
 
 #include "gsc_player.hpp"
+#include "gsc_entity.hpp"
 #include "gsc_utils.hpp"
 #include "gsc_bots.hpp"
 #include "jump.hpp"

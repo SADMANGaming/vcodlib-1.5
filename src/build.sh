@@ -62,6 +62,9 @@ $cc $debug $options $constants -c gsc.cpp -o objects/gsc.opp
 echo "##### COMPILE GSC_PLAYER.CPP #####"
 $cc $debug $options $constants -c gsc_player.cpp -o objects/gsc_player.opp
 
+echo "##### COMPILE GSC_ENTITY.CPP #####"
+$cc $debug $options $constants -c gsc_entity.cpp -o objects/gsc_entity.opp
+
 echo "##### COMPILE GSC_UTILS.CPP #####"
 $cc $debug $options $constants -c gsc_utils.cpp -o objects/gsc_utils.opp
 
