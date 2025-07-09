@@ -46,6 +46,8 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
+    {"setBounds", gsc_entity_setbounds, 0},
+
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
     {"setGravity", gsc_player_setgravity, 0},
