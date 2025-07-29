@@ -973,6 +973,7 @@ if (fetchProxyAndCountry(ipOnly, proxy, country)) {
 
 void custom_ClientBegin(unsigned int clientNum)
 {
+    #if COMPILE_LIBCURL == 1
     if(proxy_enableWelcome->integer)
     {
         std::string msg = std::string("say Welcome dear ^7") + name + "^7 from ^7" + country;
@@ -980,6 +981,7 @@ void custom_ClientBegin(unsigned int clientNum)
     
         Cbuf_ExecuteText(EXEC_APPEND, finalMsg);
     }
+    #endif
 
 
     hook_ClientBegin->unhook();
