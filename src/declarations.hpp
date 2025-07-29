@@ -1,5 +1,4 @@
 //thanks to raph
-
 #define qboolean int
 #define qtrue   1
 #define qfalse  0
@@ -95,6 +94,8 @@
 #define JUMP_LAND_SLOWDOWN_TIME 1800
 #define OVERCLIP 1.001
 
+#define CONTENTS_BODY               0x2000000
+
 #define STANCE_EFFECTIVE_STAND  0
 #define STANCE_EFFECTIVE_PRONE  1
 #define STANCE_EFFECTIVE_CROUCH 2
@@ -104,6 +105,8 @@ typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
 
 typedef void (*xcommand_t)(void);
+
+
 
 typedef unsigned char byte;
 typedef struct gclient_s gclient_t;
@@ -122,6 +125,14 @@ typedef enum
     ERR_FATAL = 0x0,
     //...
 } errorParm_t;
+
+typedef enum
+{
+    EXEC_NOW,
+    EXEC_INSERT,
+    EXEC_APPEND
+} cbufExec_t;
+
 
 enum svc_ops_e
 {
@@ -430,6 +441,12 @@ enum hudelem_update_t
 {
     HUDELEM_UPDATE_CURRENT = 0x2,
 };
+
+typedef enum
+{
+    GAME_CLIENT_COMMAND = 6,
+    GAME_CLIENT_SCORE_GET = 0x14
+} gameExport_t;
 
 typedef struct hudelem_s
 {
@@ -939,6 +956,14 @@ typedef struct
     //...
 } scr_const_t;
 
+typedef struct
+{
+    const char *name;
+    void (*func)(client_t *cl);
+} ucmd_t;
+
+
+
 extern gentity_t *g_entities;
 extern level_locals_t *level;
 extern pml_t *pml;
@@ -997,6 +1022,8 @@ typedef struct callback_s
 
 typedef struct customPlayerState_s
 {
+    qboolean overrideContents;
+	int contents;
     //// Bot
     int botButtons;
     int botWButtons;
@@ -1007,12 +1034,17 @@ typedef struct customPlayerState_s
     ////
     int gravity;
     int speed;
+    ///
+    bool sprintActive;
+    bool sprintRequestPending;
+    int sprintTimer;
 } customPlayerState_t;
 
 typedef struct customChallenge_s
 {
     int ignoredCount;
 } customChallenge_t;
+
 
 ////
 ////

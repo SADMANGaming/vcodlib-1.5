@@ -241,3 +241,26 @@ void gsc_utils_getsubstr()
     tempString[i] = 0;
     stackPushString(tempString);
 }
+
+void gsc_utils_fromhex()
+{
+	char *input;
+
+	if ( !stackGetParams("s", &input) )
+	{
+		stackError("gsc_utils_fromhex() one or more arguments is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	int output;
+
+	if ( sscanf(input, "%X", &output) != 1 )
+	{
+		stackError("gsc_utils_fromhex() one or more arguments is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	stackPushInt(output);
+}

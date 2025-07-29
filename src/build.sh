@@ -16,6 +16,9 @@ while [[ $# -gt 0 ]]; do
         -u | --unsafe)
             unsafe=true
             ;;
+        -l | --libcurl)
+            libcurl=true
+            ;;
         *)
             unrecognized_arg=$arg
             break
@@ -48,6 +51,25 @@ else
     constants+=" -D ENABLE_UNSAFE=0"
 fi
 
+libcurl_found=0
+libcurl_link=""
+libcurl_libpath="/usr/lib/i386-linux-gnu/libcurl.so.4"
+echo -n "libcurl: "
+if [ -v libcurl ]; then
+    if [ -e "$libcurl_libpath" ]; then
+        libcurl_found=1
+        libcurl_link="-lcurl"
+        constants+=" -D COMPILE_LIBCURL=1"
+        echo "ON"
+    else
+        echo "requested but lib not found, aborting."
+        exit 1
+    fi
+else
+    echo "OFF"
+    constants+=" -D COMPILE_LIBCURL=0"
+fi
+
 echo $separator
 
 mkdir -p ../bin
@@ -61,9 +83,6 @@ $cc $debug $options $constants -c gsc.cpp -o objects/gsc.opp
 
 echo "##### COMPILE GSC_PLAYER.CPP #####"
 $cc $debug $options $constants -c gsc_player.cpp -o objects/gsc_player.opp
-
-echo "##### COMPILE GSC_ENTITY.CPP #####"
-$cc $debug $options $constants -c gsc_entity.cpp -o objects/gsc_entity.opp
 
 echo "##### COMPILE GSC_UTILS.CPP #####"
 $cc $debug $options $constants -c gsc_utils.cpp -o objects/gsc_utils.opp
@@ -82,5 +101,5 @@ $cc $debug $options $constants -c vendor/qvsnprintf.c -o objects/qvsnprintf.opp
 
 echo "##### LINK    vcodlib.so #####"
 objects="$(ls objects/*.opp)"
-$cc -m32 -shared -L/lib32 -o ../bin/vcodlib.so -ldl $objects -lpthread
+$cc -m32 -shared -L/lib32 -o ../bin/vcodlib.so -ldl $objects -lpthread  $libcurl_link
 rm objects -r

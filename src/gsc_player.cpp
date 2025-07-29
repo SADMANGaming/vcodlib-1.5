@@ -360,6 +360,7 @@ void gsc_player_setgravity(scr_entref_t ref)
 	stackPushBool(qtrue);
 }
 
+
 void gsc_player_getip(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -450,3 +451,4 @@ void gsc_player_kickbot(scr_entref_t ref)
 
     stackPushBool(qtrue);
 }
+

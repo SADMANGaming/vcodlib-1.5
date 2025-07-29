@@ -19,6 +19,7 @@ scr_function_t scriptFunctions[] =
     {"getsubstr", gsc_utils_getsubstr, 0},
     {"strtok", gsc_utils_strtok, 0},
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
+    {"fromHex", gsc_utils_fromhex, 0},
 
 
     {NULL, NULL, 0} // Terminator
@@ -46,8 +47,6 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
-    {"setBounds", gsc_entity_setbounds, 0},
-
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
     {"setGravity", gsc_player_setgravity, 0},
@@ -82,6 +81,7 @@ scr_method_t scriptMethods[] =
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanRightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
+
 
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator

@@ -49,6 +49,7 @@ typedef void (*G_EntUnlink_t)(gentity_s *ent);
 typedef void (*G_SetClientContents_t)(gentity_s *ent);
 typedef void (*G_SetOrigin_t)(gentity_s *ent, const float *origin);
 typedef qboolean (*G_ClientCanSpectateTeam_t)(gclient_s *client, int team);
+typedef void (*G_AddPredictableEvent_t)(gentity_t *ent, int event, int eventParm);
 
 //// PM
 typedef bool (*PM_CheckJump_t)();
@@ -121,6 +122,9 @@ extern Scr_AddArray_t Scr_AddArray;
 typedef short (*Scr_ExecEntThread_t)(gentity_t* ent, int callbackHook, unsigned int numArgs);
 extern Scr_ExecEntThread_t Scr_ExecEntThread;
 
+typedef short (*Scr_ExecThread_t)(int callbackHook, unsigned int numArgs);
+extern Scr_ExecThread_t Scr_ExecThread;
+
 typedef short (*Scr_FreeThread_t)(short thread_id);
 extern Scr_FreeThread_t Scr_FreeThread;
 
@@ -129,7 +133,9 @@ typedef int (*Scr_GetFunctionHandle_t)(const char* scriptName, const char* label
 typedef int (*Scr_IsSystemActive_t)();
 typedef void (*Scr_SetString_t)(uint16_t *to, unsigned int from);
 
-
+// G
+typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
+extern G_Say_t G_Say;
 
 
 // Trap
