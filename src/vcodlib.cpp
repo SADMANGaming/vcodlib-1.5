@@ -97,7 +97,6 @@ int codecallback_playerkilled = 0;
 // Custom callbacks
 int codecallback_client_spam = 0;
 int codecallback_playercommand = 0;
-int codecallback_playerconnecting = 0;
 
 // Resume addresses
 uintptr_t resume_addr_PM_WalkMove;
@@ -112,8 +111,7 @@ callback_t callbacks[] =
     { &codecallback_playerkilled, "CodeCallback_PlayerKilled" }, // g_scr_data.gametype.playerkilled
 
     { &codecallback_client_spam, "CodeCallback_CLSpam"},
-    { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
-    { &codecallback_playerconnecting, "CodeCallback_PlayerConnecting" }
+    { &codecallback_playercommand, "CodeCallback_PlayerCommand"}
 };
 
 
@@ -282,6 +280,7 @@ void custom_Com_Init(char *commandLine)
 
     proxy_enableAntiVPN = Cvar_Get("proxy_enableAntiVPN", "0", CVAR_ARCHIVE);
     proxy_enableWelcome = Cvar_Get("proxy_enableWelcome", "0", CVAR_ARCHIVE);
+
 /*    g_playerCollision = Cvar_Get("g_playerCollision", "1", CVAR_ARCHIVE);
     player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
     player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
@@ -319,8 +318,8 @@ int custom_GScr_LoadGameTypeScript()
     {
         if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback: PlayerCommand
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
-        else if(!strcmp(callbacks[i].name, "CodeCallback_PlayerConnecting")) // Custom callback: 
-            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
+//        else if(!strcmp(callbacks[i].name, "CodeCallback_PlayerConnecting")) // Custom callback: 
+//            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
@@ -806,10 +805,6 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
-
-
-
-
 #if COMPILE_LIBCURL == 1
 
 // Write callback to store response
@@ -925,35 +920,32 @@ void custom_SV_DirectConnect(netadr_t from) {
         }
     }
 #if COMPILE_LIBCURL == 1
-    client_t* proxyClient = NULL;
-    for (int i = 0; i < sv_maxclients->integer; i++) {
-        client_t* cl = &svs.clients[i];
-        if (cl->state != CS_FREE && NET_CompareBaseAdr(from, cl->netchan.remoteAddress)) {
-            proxyClient = cl;
-            break;
-        }
-    }
-std::string proxy;
-std::string adr = NET_AdrToString(from);
-size_t colonPos = adr.find(':');
-std::string ipOnly = (colonPos != std::string::npos) ? adr.substr(0, colonPos) : adr;
 
-// Now use ipOnly
-if (fetchProxyAndCountry(ipOnly, proxy, country)) {
-    std::cout << "Proxy: " << proxy << "\n";
-    std::cout << "Country: " << country << "\n";
-} else {
-    std::cerr << "Failed to fetch or parse response.\n";
-}
+    std::string proxy;
+    std::string adr = NET_AdrToString(from);
+    size_t colonPos = adr.find(':');
+    std::string ipOnly = (colonPos != std::string::npos) ? adr.substr(0, colonPos) : adr;
+
+    if (fetchProxyAndCountry(ipOnly, proxy, country)) {
+        std::cout << "Proxy: " << proxy << "\n";
+        std::cout << "Country: " << country << "\n";
+    } else {
+        std::cerr << "Failed to fetch or parse response.\n";
+    }
+
+
+
 
     if(proxy_enableAntiVPN->integer)
     {
-        if (proxy == "yes" && proxyClient) {
+        if (proxy == "yes") {
             Com_Printf("Rejected proxy client from IP: %s (Country: %s)\n", NET_AdrToString(from), country.c_str());
-            SV_DropClient(proxyClient, "Proxies not allowed");
+            NET_OutOfBandPrint(NS_SERVER, from, "print\nProxy/VPN connections are not allowed.\n");
             return;
         }
     }
+
+    
     name = Info_ValueForKey(userinfo, "name");
 
 //    std::string msg = std::string("say Welcome dear ^7") + name + "^7 from ^7" + country;
@@ -1739,9 +1731,6 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 
-    // Sprint updating
-//    hook_PmoveSingle = new cHook((int)dlsym(libHandle, "PmoveSingle"), (int)custom_PmoveSingle);
-//    hook_PmoveSingle->hook();
 
     //Jump
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked); //UO:sub_24B7C
@@ -1762,6 +1751,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_ClientBegin = new cHook((int)dlsym(libHandle, "ClientBegin"), (int)custom_ClientBegin);
     hook_ClientBegin->hook();
+
 
 //    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
 //    hook_ClientSpawn->hook();
