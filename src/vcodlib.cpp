@@ -90,8 +90,9 @@ cHook *hook_SV_MasterHeartbeat;
 cHook *hook_SV_HitchWarning;
 
 cHook *hook_ClientBegin;
+#if COMPILE_LIBCURL == 1
 cHook *hook_G_Say;
-
+#endif
 // Stock callbacks
 int codecallback_startgametype = 0;
 int codecallback_playerconnect = 0;
@@ -1851,10 +1852,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_ClientBegin = new cHook((int)dlsym(libHandle, "ClientBegin"), (int)custom_ClientBegin);
     hook_ClientBegin->hook();
-
+#if COMPILE_LIBCURL == 1
     hook_G_Say = new cHook((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
     hook_G_Say->hook();
-
+#endif
 //    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
 //    hook_ClientSpawn->hook();
 
