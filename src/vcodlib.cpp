@@ -67,6 +67,10 @@ cvar_t *sv_logHitchWarning;
 cvar_t *proxy_enableAntiVPN;
 cvar_t *proxy_enableWelcome;
 
+cvar_t *discord_logTeamSay;
+cvar_t *discord_logChatURL;
+cvar_t *discord_logChat;
+
 /*cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
@@ -86,6 +90,7 @@ cHook *hook_SV_MasterHeartbeat;
 cHook *hook_SV_HitchWarning;
 
 cHook *hook_ClientBegin;
+cHook *hook_G_Say;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -201,7 +206,7 @@ Jump_Set_t Jump_Set;
 PM_NoclipMove_t PM_NoclipMove;
 StuckInClient_t StuckInClient;
 Q_strncpyz_t Q_strncpyz;
-G_Say_t G_Say;
+//G_Say_t G_Say;
 Scr_ExecThread_t Scr_ExecThread;
 /*void UCMD_custom_sprint(client_t *cl);
 
@@ -280,6 +285,10 @@ void custom_Com_Init(char *commandLine)
 
     proxy_enableAntiVPN = Cvar_Get("proxy_enableAntiVPN", "0", CVAR_ARCHIVE);
     proxy_enableWelcome = Cvar_Get("proxy_enableWelcome", "0", CVAR_ARCHIVE);
+    
+    discord_logChat = Cvar_Get("discord_logChat", "0", CVAR_ARCHIVE);
+    discord_logChatURL = Cvar_Get("discord_logChatURL", "0", CVAR_ARCHIVE);
+    discord_logTeamSay = Cvar_Get("discord_logTeamSay", "0", CVAR_ARCHIVE);
 
 /*    g_playerCollision = Cvar_Get("g_playerCollision", "1", CVAR_ARCHIVE);
     player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
@@ -806,6 +815,96 @@ const char* hook_AuthorizeState(int arg)
 }
 
 #if COMPILE_LIBCURL == 1
+#include <iomanip>
+std::string escape_json(const std::string& input) {
+    std::ostringstream ss;
+    for (char c : input) {
+        // Skip unwanted control characters completely (like 0x15)
+        if ((unsigned char)c < 0x20 && c != '\b' && c != '\f' && c != '\n' && c != '\r' && c != '\t') {
+            // skip this char (don’t add to output)
+            continue;
+        }
+
+        switch (c) {
+            case '\"': ss << "\\\""; break;
+            case '\\': ss << "\\\\"; break;
+            case '\b': ss << "\\b"; break;
+            case '\f': ss << "\\f"; break;
+            case '\n': ss << "\\n"; break;
+            case '\r': ss << "\\r"; break;
+            case '\t': ss << "\\t"; break;
+            default:
+                if ((unsigned char)c < 0x20) {
+                    // This handles any remaining control chars (usually won't happen after above filter)
+                    ss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)(unsigned char)c;
+                } else {
+                    ss << c;
+                }
+        }
+    }
+    return ss.str();
+}
+
+
+
+
+void custom_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
+{
+    hook_G_Say->unhook();
+    void (*G_Say)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
+    *(int*)&G_Say = hook_G_Say->from;
+    G_Say(ent, NULL, mode, chatText);
+    hook_G_Say->hook();
+
+    CURL *curl;
+    CURLcode responseCode;
+    struct curl_slist *headers = NULL;
+
+    int clientNum = ent - g_entities;
+    client_t *cl = &svs.clients[clientNum];
+    char* name = cl->name;
+
+//    printf("%s\n", name);
+
+//    printf("%d\n", mode);
+
+
+    if(discord_logChat->integer == 0)
+    return;
+
+    if(mode == 1 && discord_logTeamSay->integer == 0)
+    return;
+
+
+
+    
+    //std::string payload = "{\"content\":\"" + std::string(chatText) + "\"}";
+    std::string escapedText = escape_json(chatText);  // Escape special characters
+    std::string payload = "{\"content\":\"" + std::string("``") + std::string(name) + std::string(" : ") + std::string(escapedText) + std::string("``") +"\"}";
+
+    curl = curl_easy_init();
+    if (curl)
+    {
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_URL, discord_logChatURL->string);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 2000L); // Optional: prevent hanging
+
+        responseCode = curl_easy_perform(curl);
+        if (responseCode != CURLE_OK)
+        {
+            Com_Printf("curl_easy_perform() failed: %s\n", curl_easy_strerror(responseCode));
+        }
+
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
+    }
+    else
+    {
+        Com_Printf("curl_easy_init() failed\n");
+    }
+}
 
 // Write callback to store response
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* out) {
@@ -1723,13 +1822,14 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(libHandle, "trap_SendServerCommand");
     Q_strncpyz = (Q_strncpyz_t)dlsym(libHandle, "Q_strncpyz");
     G_AddPredictableEvent = (G_AddPredictableEvent_t)dlsym(libHandle, "G_AddPredictableEvent");
-    G_Say = (G_Say_t)dlsym(libHandle, "G_Say");
+//    G_Say = (G_Say_t)dlsym(libHandle, "G_Say");
 
     Scr_ExecThread = (Scr_ExecThread_t)dlsym(libHandle, "Scr_ExecThread");
 
     ////
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
+//    hook_jmp((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
 
 
     //Jump
@@ -1752,6 +1852,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_ClientBegin = new cHook((int)dlsym(libHandle, "ClientBegin"), (int)custom_ClientBegin);
     hook_ClientBegin->hook();
 
+    hook_G_Say = new cHook((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
+    hook_G_Say->hook();
 
 //    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
 //    hook_ClientSpawn->hook();

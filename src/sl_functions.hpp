@@ -134,8 +134,8 @@ typedef int (*Scr_IsSystemActive_t)();
 typedef void (*Scr_SetString_t)(uint16_t *to, unsigned int from);
 
 // G
-typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
-extern G_Say_t G_Say;
+//typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
+//extern G_Say_t G_Say;
 
 
 // Trap
