@@ -89,3 +89,18 @@
   * Type: String  
   * Default: `"0"`  
   * Effect: Makes UDP download system faster
+ 
+* `discord_logChat`
+  * Type: Int
+  * Default: `"0"`
+  * Effect: If set to 1 it will send game chat messages to Discord.
+ 
+* `discord_logChatURL`
+  * Type: String
+  * Default: `""`
+  * Effect: If set to you'r Discord channel's webhook URL, it will send game chat messages to that channel through webhook.
+
+ * `discord_logTeamSay`
+  * Type: Int
+  * Default: `"0"`
+  * Effect: If set to 1 it will send game team say messages to Discord.
