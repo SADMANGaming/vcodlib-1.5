@@ -25,6 +25,9 @@ static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x08072916;
 typedef cvar_t* (*Cvar_Set_t)(const char *var_name, const char *value);
 static const Cvar_Set_t Cvar_Set = (Cvar_Set_t)0x8073100;
 
+typedef cvar_t * (*Cvar_Set2_t)(const char *var_name, const char *value, qboolean force);
+static const Cvar_Set2_t Cvar_Set2 = (Cvar_Set2_t)0x08072da8;
+
 // Cmd
 typedef char* (*Cmd_Argv_t)(int arg);
 static const Cmd_Argv_t Cmd_Argv = (Cmd_Argv_t)0x080600f4;

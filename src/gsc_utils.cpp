@@ -264,3 +264,33 @@ void gsc_utils_fromhex()
 
 	stackPushInt(output);
 }
+
+void gsc_utils_stringtoistring()
+{
+    const char* string;
+
+    if ( !stackGetParams("s", &string) )
+	{
+		stackError("gsc_utils_addistring() one argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+    stackPushIString(string);
+}
+
+void gsc_utils_exec()
+{
+    const char* text;
+
+    if ( !stackGetParams("s", &text) )
+	{
+		stackError("gsc_utils_exec() one argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+    Cbuf_ExecuteText(EXEC_APPEND, text);
+    
+    stackPushBool(qtrue);
+}

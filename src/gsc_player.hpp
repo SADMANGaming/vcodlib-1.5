@@ -29,5 +29,11 @@ void gsc_player_dropclient(scr_entref_t ref);
 void gsc_player_renamebot(scr_entref_t ref);
 void gsc_player_kickbot(scr_entref_t ref);
 
+void gsc_player_getuserinfo(scr_entref_t ref);
+void gsc_player_setuserinfo(scr_entref_t ref);
+void gsc_player_getangles(scr_entref_t ref);
+
+void gsc_player_kickallbots();
+void gsc_player_isonladder(scr_entref_t ref);
 
 #endif

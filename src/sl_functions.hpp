@@ -37,6 +37,10 @@ typedef int (*BG_CheckProneValid_t)(int passEntityNum, const float *const vPos, 
     void (*)(trace_t *, const vec3_t, const vec3_t, const vec3_t, const vec3_t, int, int),
     void (*)(trace_t *, const vec3_t, const vec3_t, const vec3_t, const vec3_t, int, int),
     int proneCheckType, float prone_feet_dist);
+
+typedef WeaponDef_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+typedef int (*BG_GetWeaponIndexForName_t)(const char *name);
+
 ////
 
 //Cmd
@@ -50,6 +54,7 @@ typedef void (*G_SetClientContents_t)(gentity_s *ent);
 typedef void (*G_SetOrigin_t)(gentity_s *ent, const float *origin);
 typedef qboolean (*G_ClientCanSpectateTeam_t)(gclient_s *client, int team);
 typedef void (*G_AddPredictableEvent_t)(gentity_t *ent, int event, int eventParm);
+extern G_AddPredictableEvent_t G_AddPredictableEvent;
 
 //// PM
 typedef bool (*PM_CheckJump_t)();
@@ -132,6 +137,15 @@ typedef unsigned int (*Scr_LoadScript_t)(const char *filename);
 typedef int (*Scr_GetFunctionHandle_t)(const char* scriptName, const char* labelName);
 typedef int (*Scr_IsSystemActive_t)();
 typedef void (*Scr_SetString_t)(uint16_t *to, unsigned int from);
+
+typedef void (*Scr_AddIString_t)(const char* string);
+extern Scr_AddIString_t Scr_AddIString;
+
+typedef int (*Scr_GetType_t)(unsigned int param);
+extern Scr_GetType_t Scr_GetType;
+
+typedef gentity_t * (*Scr_GetEntity_t)(unsigned int index);
+extern Scr_GetEntity_t Scr_GetEntity;
 
 // G
 //typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
