@@ -38,8 +38,15 @@ typedef int (*BG_CheckProneValid_t)(int passEntityNum, const float *const vPos, 
     void (*)(trace_t *, const vec3_t, const vec3_t, const vec3_t, const vec3_t, int, int),
     int proneCheckType, float prone_feet_dist);
 
-typedef WeaponDef_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+//typedef WeaponDef_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+typedef weaponinfo_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+extern BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
+
 typedef int (*BG_GetWeaponIndexForName_t)(const char *name);
+extern BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
+
+typedef int (*BG_GetNumWeapons_t)(void);
+extern BG_GetNumWeapons_t BG_GetNumWeapons;
 
 ////
 

@@ -31,6 +31,7 @@
 #include "gsc_utils.hpp"
 #include "gsc_bots.hpp"
 #include "gsc_entity.hpp"
+#include "gsc_weapon.hpp"
 
 #include "jump.hpp"
 

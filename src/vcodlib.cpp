@@ -218,7 +218,7 @@ Scr_ExecThread_t Scr_ExecThread;
 Scr_AddIString_t Scr_AddIString;
 BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
 BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
-
+BG_GetNumWeapons_t BG_GetNumWeapons;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_GetType_t Scr_GetType;
 /*void UCMD_custom_sprint(client_t *cl);
@@ -329,12 +329,14 @@ void toggleLegacyStyle(bool enable)
         Cvar_Set2("jump_slowdownEnable", "1", qfalse);
 
     int id_kar98k_sniper = BG_GetWeaponIndexForName("kar98k_sniper_mp");
-    WeaponDef_t* weapon_kar98k_sniper = BG_GetInfoForWeapon(id_kar98k_sniper);
+    //WeaponDef_t* weapon_kar98k_sniper = BG_GetInfoForWeapon(id_kar98k_sniper);
+    weaponinfo_t* weapon_kar98k_sniper = BG_GetInfoForWeapon(id_kar98k_sniper);
     int id_springfield = BG_GetWeaponIndexForName("springfield_mp");
-    WeaponDef_t* weapon_springfield = BG_GetInfoForWeapon(id_springfield);
+    //WeaponDef_t* weapon_springfield = BG_GetInfoForWeapon(id_springfield);
+    weaponinfo_t* weapon_springfield = BG_GetInfoForWeapon(id_springfield);
     int id_mosin_nagant_sniper = BG_GetWeaponIndexForName("mosin_nagant_sniper_mp");
-    WeaponDef_t* weapon_mosin_nagant_sniper = BG_GetInfoForWeapon(id_mosin_nagant_sniper);
-
+    //WeaponDef_t* weapon_mosin_nagant_sniper = BG_GetInfoForWeapon(id_mosin_nagant_sniper);
+    weaponinfo_t* weapon_mosin_nagant_sniper = BG_GetInfoForWeapon(id_mosin_nagant_sniper);
     if (weapon_kar98k_sniper)
     {
         const WeaponProperties* properties_kar98k_sniper = nullptr;
@@ -1957,6 +1959,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_ExecThread = (Scr_ExecThread_t)dlsym(libHandle, "Scr_ExecThread");
     BG_GetWeaponIndexForName = (BG_GetWeaponIndexForName_t)dlsym(libHandle, "BG_GetWeaponIndexForName");
     BG_GetInfoForWeapon = (BG_GetInfoForWeapon_t)dlsym(libHandle, "BG_GetInfoForWeapon");
+    BG_GetNumWeapons = (BG_GetNumWeapons_t)dlsym(libHandle, "BG_GetNumWeapons");
 
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
     Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");

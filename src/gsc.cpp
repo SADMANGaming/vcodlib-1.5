@@ -25,6 +25,9 @@ scr_function_t scriptFunctions[] =
 
     {"kickallbots", gsc_player_kickallbots, 0},
 
+    {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
+    {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
+
 
     {NULL, NULL, 0} // Terminator
 };
