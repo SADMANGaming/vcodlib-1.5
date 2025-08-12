@@ -1,6 +1,11 @@
 #ifndef _SL_FUNCTIONS_HPP_
 #define _SL_FUNCTIONS_HPP_
 
+
+// vec
+typedef void * (*vectoangles_t)(const vec3_t value1, vec3_t angles);
+extern vectoangles_t vectoangles;
+
 //va
 typedef char* (*va_t)(const char *format, ...);
 extern va_t va;
@@ -14,6 +19,7 @@ typedef float (*PitchForYawOnNormal_t)(const float fYaw, const vec3_t normal);
 typedef float (*AngleDelta_t)(float angle1, float angle2);
 typedef void (*player_die_t)(gentity_s *self, gentity_s *inflictor, gentity_s *attacker, int damage, int meansOfDeath, int iWeapon, const float *vDir, int hitLoc);
 typedef void (*SetClientViewAngle_t)(gentity_s *ent, const float *angle);
+extern SetClientViewAngle_t SetClientViewAngle;
 typedef void (*ClientEndFrame_t)(gentity_s *entity);
 typedef void (*ClientThink_real_t)(gentity_s *ent, usercmd_s *ucmd);
 typedef void (*StopFollowing_t)(gentity_s *ent);

@@ -36,4 +36,7 @@ void gsc_player_getangles(scr_entref_t ref);
 void gsc_player_kickallbots();
 void gsc_player_isonladder(scr_entref_t ref);
 
+void gsc_player_isbot(scr_entref_t ref);
+void gsc_player_lookatattacker(scr_entref_t ref);
+
 #endif

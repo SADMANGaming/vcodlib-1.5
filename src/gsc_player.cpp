@@ -598,3 +598,106 @@ void gsc_player_setstance(scr_entref_t ref)
 
 	stackPushBool(qtrue);
 }
+
+void gsc_player_isbot(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_isbot() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	client_t *client = &svs.clients[id];
+
+	stackPushBool(client->bIsTestClient);
+}
+
+/*void gsc_player_lookatattacker(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_lookatattacker() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+    int attackerST = customPlayerState[id].attacker;
+    client_t *attacker = &svs.clients[attackerST]; 
+	client_t *self = &svs.clients[id];
+
+    if (!attacker || !attacker->gentity->client)
+    {
+        stackError("No valid attacker");
+        printf("\n Attacker = %p", attacker);
+        stackPushUndefined();
+        return;
+    }
+
+    if (!self || !self->gentity->client)
+    {
+        stackError("No valid self");
+        printf("\n Self = %p", self);
+        stackPushUndefined();
+        return;
+    }
+
+    vec3_t attackervec;
+    vec3_t selfvec; //->gentity->ps->client
+    VectorCopy(attacker->gentity->client->ps.viewangles, attackervec);
+    VectorCopy(self->gentity->client->ps.viewangles, selfvec);
+
+//    vec3_t vector = attackervec - selfvec;
+    vec3_t vector;
+    VectorSubtract(attackervec, selfvec, vector);
+printf("%f %f %f", vector[0], vector[1], vector[2]);
+
+    VectorCopy(vector, self->gentity->client->ps.viewangles);
+}*/
+void gsc_player_lookatattacker(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_lookatattacker() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    int attackerST = customPlayerState[id].attacker;
+    if (attackerST < 0 || attackerST >= MAX_CLIENTS)
+    {
+        stackError("Invalid attacker index");
+        stackPushUndefined();
+        return;
+    }
+
+    gentity_t *attacker = svs.clients[attackerST].gentity;
+    gentity_t *self     = svs.clients[id].gentity;
+
+    if (!attacker || !attacker->client || !self || !self->client)
+    {
+        stackError("Invalid entities");
+        stackPushUndefined();
+        return;
+    }
+
+    // Get positions
+    vec3_t dir;
+    VectorSubtract(attacker->client->ps.origin, self->client->ps.origin, dir);
+
+    // Convert to angles
+    vec3_t angles;
+    vectoangles(dir, angles);
+
+    printf("Calculated look angles: %f %f %f\n", angles[0], angles[1], angles[2]);
+
+    // Apply
+    //VectorCopy(angles, self->client->ps.viewangles);
+    SetClientViewAngle(self, angles);
+}

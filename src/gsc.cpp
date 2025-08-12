@@ -28,6 +28,8 @@ scr_function_t scriptFunctions[] =
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
     {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
 
+    {"exec", gsc_utils_exec, 0},
+
 
     {NULL, NULL, 0} // Terminator
 };
@@ -99,6 +101,8 @@ scr_method_t scriptMethods[] =
 
     {"isonladder", gsc_player_isonladder, 0},
 
+    {"isBot", gsc_player_isbot, 0},
+    {"lookAtAttacker", gsc_player_lookatattacker, 0},
 
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator

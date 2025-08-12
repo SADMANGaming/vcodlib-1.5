@@ -14,7 +14,7 @@ void gsc_utils_getsubstr();
 void gsc_utils_strtok(); // From cod2rev
 void gsc_utils_sendcommandtoclient();
 void gsc_utils_fromhex();
-
+void gsc_utils_exec();
 void gsc_utils_stringtoistring();
 
 #endif

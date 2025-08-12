@@ -91,7 +91,7 @@ cHook *hook_PM_FlyMove;
 cHook *hook_SV_MasterHeartbeat;
 cHook *hook_SV_HitchWarning;
 cHook* hook_cvar_set2;
-
+cHook *hook_G_Damage;
 
 cHook *hook_ClientBegin;
 #if COMPILE_LIBCURL == 1
@@ -221,6 +221,7 @@ BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
 BG_GetNumWeapons_t BG_GetNumWeapons;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_GetType_t Scr_GetType;
+vectoangles_t vectoangles;
 /*void UCMD_custom_sprint(client_t *cl);
 
 static ucmd_t ucmds[] =
@@ -678,6 +679,29 @@ int custom_ClientEndFrame(gentity_t *ent)
     return ret;
 }
 
+void custom_G_Damage(gentity_s *self, gentity_s *inflictor, gentity_s *ent, const float *vDir,const float *vPoint, int value, /*int dflags,*/ int meansOfDeath, int hitLoc, int timeOffset)
+{
+    hook_G_Damage->unhook();
+    void (*G_Damage)(gentity_s *self, gentity_s *inflictor, gentity_s *ent, const float *vDir,const float *vPoint, int value, /*int dflags,*/ int meansOfDeath, int hitLoc, int timeOffset);
+    *(int*)&G_Damage = hook_G_Damage->from;
+    G_Damage(self, inflictor, ent, vDir, vPoint, value, /*dflags,*/ meansOfDeath, hitLoc, timeOffset);
+    hook_G_Damage->hook();
+
+    int clientNum = self - g_entities;
+    int attackerNum = ent - g_entities;
+
+    if (clientNum >= 0 && clientNum < sv_maxclients->integer &&
+        attackerNum >= 0 && attackerNum < sv_maxclients->integer)
+    {
+        customPlayerState[clientNum].attacker = attackerNum;
+        printf("Set attacker for client %d to client %d\n", clientNum, attackerNum);
+    }
+    else
+    {
+        printf("Failed to set attacker for client %d\n", clientNum);
+    }
+
+}
 
 void custom_PM_FlyMove()
 {
@@ -1963,6 +1987,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
     Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");
+    vectoangles = (vectoangles_t)dlsym(libHandle, "vectoangles");
     ////
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
@@ -1992,6 +2017,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_G_Say = new cHook((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
     hook_G_Say->hook();
 #endif
+    hook_G_Damage = new cHook((int)dlsym(libHandle, "G_Damage"), (int)custom_G_Damage);
+    hook_G_Damage->hook();
 //    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
 //    hook_ClientSpawn->hook();
 
