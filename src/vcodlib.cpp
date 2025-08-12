@@ -694,7 +694,7 @@ void custom_G_Damage(gentity_s *self, gentity_s *inflictor, gentity_s *ent, cons
         attackerNum >= 0 && attackerNum < sv_maxclients->integer)
     {
         customPlayerState[clientNum].attacker = attackerNum;
-        printf("Set attacker for client %d to client %d\n", clientNum, attackerNum);
+        //printf("Set attacker for client %d to client %d\n", clientNum, attackerNum);
     }
     else
     {

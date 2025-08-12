@@ -672,7 +672,7 @@ void gsc_player_lookatattacker(scr_entref_t ref)
     int attackerST = customPlayerState[id].attacker;
     if (attackerST < 0 || attackerST >= MAX_CLIENTS)
     {
-        stackError("Invalid attacker index");
+        stackError("gsc_player_lookatattacker() Invalid attacker index");
         stackPushUndefined();
         return;
     }
@@ -682,7 +682,7 @@ void gsc_player_lookatattacker(scr_entref_t ref)
 
     if (!attacker || !attacker->client || !self || !self->client)
     {
-        stackError("Invalid entities");
+        stackError("gsc_player_lookatattacker() Invalid entities");
         stackPushUndefined();
         return;
     }
@@ -695,7 +695,7 @@ void gsc_player_lookatattacker(scr_entref_t ref)
     vec3_t angles;
     vectoangles(dir, angles);
 
-    printf("Calculated look angles: %f %f %f\n", angles[0], angles[1], angles[2]);
+//    printf("Calculated look angles: %f %f %f\n", angles[0], angles[1], angles[2]);
 
     // Apply
     //VectorCopy(angles, self->client->ps.viewangles);
