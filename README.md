@@ -10,6 +10,7 @@ ___
 ## What's new?
 - [Added cvars](docs/cvars.md)
 - [Bug fixes](docs/bugfixes.md)
+- GSC Methods/Functions - Documentation coming soon!
 
 #### Credits
 
