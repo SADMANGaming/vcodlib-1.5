@@ -1,5 +1,59 @@
 #include "gsc_player.hpp"
 
+
+void gsc_player_getuserinfo(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *key;
+
+    if ( !stackGetParams("s", &key) )
+    {
+        stackError("gsc_player_getuserinfo() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_getuserinfo() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+    char *val = Info_ValueForKey(client->userinfo, key);
+
+    if ( strlen(val) )
+        stackPushString(val);
+    else
+        stackPushString("");
+}
+
+void gsc_player_setuserinfo(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *key, *value;
+
+    if ( !stackGetParams("ss", &key, &value) )
+    {
+        stackError("gsc_player_setuserinfo() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_setuserinfo() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+    Info_SetValueForKey(client->userinfo, key, value);
+
+    stackPushBool(qtrue);
+}
+
 void gsc_player_processclientcommand(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -360,6 +414,7 @@ void gsc_player_setgravity(scr_entref_t ref)
 	stackPushBool(qtrue);
 }
 
+
 void gsc_player_getip(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -449,4 +504,200 @@ void gsc_player_kickbot(scr_entref_t ref)
 	client->state = CS_FREE;
 
     stackPushBool(qtrue);
+}
+
+
+
+void gsc_player_getangles(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_getangles() entity %i is not a player", id);
+        Scr_AddUndefined();
+        return;
+    }
+    
+    playerState_t *ps = SV_GameClientNum(id);
+
+    Scr_AddVector(ps->viewangles);
+}
+
+extern cvar_t* sv_maxclients;
+void gsc_player_kickallbots()
+{
+    int i;
+
+    for (i = 0; i < sv_maxclients->integer; i++)
+    {
+        client_t *client = &svs.clients[i];
+
+        if (client->netchan.remoteAddress.type == NA_BOT)
+        {
+            SV_DropClient(client, NULL);
+            client->state = CS_FREE;
+        }
+    }
+
+    stackPushBool(qtrue);
+}
+
+void gsc_player_isonladder(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+	if (id >= MAX_CLIENTS)
+	{
+		stackError("gsc_player_isonladder() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	playerState_t *ps = SV_GameClientNum(id);
+	stackPushBool(ps->pm_flags & PMF_LADDER ? qtrue : qfalse);
+}
+
+void gsc_player_setstance(scr_entref_t ref)
+{
+	int id = ref.entnum;
+	char *stance;
+
+	if ( !stackGetParams("s", &stance) )
+	{
+		stackError("gsc_player_setstance() argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	gentity_t *entity = &g_entities[id];
+
+	if ( entity->client == NULL )
+	{
+		stackError("gsc_player_setstance() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	int event;
+
+	if ( strcmp(stance, "stand") == 0 )
+		event = EV_STANCE_FORCE_STAND;
+	else if ( strcmp(stance, "crouch") == 0 )
+		event = EV_STANCE_FORCE_CROUCH;
+	else if ( strcmp(stance, "prone") == 0 )
+		event = EV_STANCE_FORCE_PRONE;
+	else
+	{
+		stackError("gsc_player_setstance() invalid argument '%s'. Valid arguments are: 'stand', 'crouch', 'prone'", stance);
+		stackPushUndefined();
+		return;
+	}
+
+	G_AddPredictableEvent(entity, event, 0);
+
+	stackPushBool(qtrue);
+}
+
+void gsc_player_isbot(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_isbot() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	client_t *client = &svs.clients[id];
+
+	stackPushBool(client->bIsTestClient);
+}
+
+/*void gsc_player_lookatattacker(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_lookatattacker() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+    int attackerST = customPlayerState[id].attacker;
+    client_t *attacker = &svs.clients[attackerST]; 
+	client_t *self = &svs.clients[id];
+
+    if (!attacker || !attacker->gentity->client)
+    {
+        stackError("No valid attacker");
+        printf("\n Attacker = %p", attacker);
+        stackPushUndefined();
+        return;
+    }
+
+    if (!self || !self->gentity->client)
+    {
+        stackError("No valid self");
+        printf("\n Self = %p", self);
+        stackPushUndefined();
+        return;
+    }
+
+    vec3_t attackervec;
+    vec3_t selfvec; //->gentity->ps->client
+    VectorCopy(attacker->gentity->client->ps.viewangles, attackervec);
+    VectorCopy(self->gentity->client->ps.viewangles, selfvec);
+
+//    vec3_t vector = attackervec - selfvec;
+    vec3_t vector;
+    VectorSubtract(attackervec, selfvec, vector);
+printf("%f %f %f", vector[0], vector[1], vector[2]);
+
+    VectorCopy(vector, self->gentity->client->ps.viewangles);
+}*/
+void gsc_player_lookatattacker(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_lookatattacker() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    int attackerST = customPlayerState[id].attacker;
+    if (attackerST < 0 || attackerST >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_lookatattacker() Invalid attacker index");
+        stackPushUndefined();
+        return;
+    }
+
+    gentity_t *attacker = svs.clients[attackerST].gentity;
+    gentity_t *self     = svs.clients[id].gentity;
+
+    if (!attacker || !attacker->client || !self || !self->client)
+    {
+        stackError("gsc_player_lookatattacker() Invalid entities");
+        stackPushUndefined();
+        return;
+    }
+
+    // Get positions
+    vec3_t dir;
+    VectorSubtract(attacker->client->ps.origin, self->client->ps.origin, dir);
+
+    // Convert to angles
+    vec3_t angles;
+    vectoangles(dir, angles);
+
+//    printf("Calculated look angles: %f %f %f\n", angles[0], angles[1], angles[2]);
+
+    // Apply
+    //VectorCopy(angles, self->client->ps.viewangles);
+    SetClientViewAngle(self, angles);
 }

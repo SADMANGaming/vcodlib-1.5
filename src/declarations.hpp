@@ -1,5 +1,4 @@
 //thanks to raph
-
 #define qboolean int
 #define qtrue   1
 #define qfalse  0
@@ -12,6 +11,7 @@
 #define VectorMA(v, s, b, o)    ((o)[0] = (v)[0] + (b)[0] * (s), (o)[1] = (v)[1] + (b)[1] * (s), (o)[2] = (v)[2] + (b)[2] * (s))
 #define	VectorScale(v, s, o)    ((o)[0] = (v)[0] * (s), (o)[1] = (v)[1] * (s), (o)[2] = (v)[2] * (s))
 #define VectorSet(v, x, y, z)   ((v)[0] = (x), (v)[1] = (y), (v)[2] = (z))
+#define VectorSubtract( a, b, c )   ( ( c )[0] = ( a )[0] - ( b )[0],( c )[1] = ( a )[1] - ( b )[1],( c )[2] = ( a )[2] - ( b )[2] )
 
 #define FLOAT_INT_BITS  13
 #define FLOAT_INT_BIAS  (1 << (FLOAT_INT_BITS - 1)) // 0x1000
@@ -95,15 +95,21 @@
 #define JUMP_LAND_SLOWDOWN_TIME 1800
 #define OVERCLIP 1.001
 
+#define CONTENTS_BODY               0x2000000
+
 #define STANCE_EFFECTIVE_STAND  0
 #define STANCE_EFFECTIVE_PRONE  1
 #define STANCE_EFFECTIVE_CROUCH 2
+
+#define SVF_SINGLECLIENT        0x800 // TODO: VERIFY
 
 typedef float vec_t;
 typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
 
 typedef void (*xcommand_t)(void);
+
+
 
 typedef unsigned char byte;
 typedef struct gclient_s gclient_t;
@@ -122,6 +128,14 @@ typedef enum
     ERR_FATAL = 0x0,
     //...
 } errorParm_t;
+
+typedef enum
+{
+    EXEC_NOW,
+    EXEC_INSERT,
+    EXEC_APPEND
+} cbufExec_t;
+
 
 enum svc_ops_e
 {
@@ -404,7 +418,25 @@ typedef struct entityState_s
     float fWaistPitch;
 } entityState_t;
 
+
 typedef struct
+{
+    byte linked;            // 0x0  (ent + 240)
+    byte gap_0x1[3];
+    byte svFlags;           // 0x4  (... + 244)
+    byte gap_0x5[0xF];      //      (... + 245)
+    vec3_t mins;            // 0x14 (... + 260)
+    vec3_t maxs;            // 0x20 (... + 272)
+    /* singleClient moved to 0x2C since 0x29 overlaps maxs when vec3_t is 12 bytes */
+    int  singleClient;      // 0x2C
+    byte gap_0x30[0x8];     // fills to preserve size/offsets up to original layout
+    int  contents;          // 0x38 (... + 284)
+    byte gap_0x3C[0x30];
+} entityShared_t;
+
+
+
+/*typedef struct
 {
     byte linked;        // 0x0  (ent + 240)
     byte gap_0x1[3];
@@ -415,7 +447,9 @@ typedef struct
     byte gap_0x2C[0xC];
     int contents;       // 0x38 (... + 284)
     byte gap_0x3C[0x30];
-} entityShared_t;
+} entityShared_t;*/
+
+
 
 typedef struct objective_s
 {
@@ -430,6 +464,12 @@ enum hudelem_update_t
 {
     HUDELEM_UPDATE_CURRENT = 0x2,
 };
+
+typedef enum
+{
+    GAME_CLIENT_COMMAND = 6,
+    GAME_CLIENT_SCORE_GET = 0x14
+} gameExport_t;
 
 typedef struct hudelem_s
 {
@@ -782,6 +822,47 @@ typedef struct
 } server_t;
 */
 
+typedef struct WeaponDef_t
+{
+    int number;
+    char* name;
+    char* displayName;
+    byte pad[0x1E4];
+    int reloadAddTime;
+    byte pad2[0x20];
+    float moveSpeedScale;
+    float adsZoomFov;
+    float adsZoomInFrac;
+    float adsZoomOutFrac;
+    byte pad3[0x44];
+    int adsTransInTime;
+    int adsTransOutTime;
+    byte pad4[0x8];
+    float idleCrouchFactor;
+    float idleProneFactor;
+    byte pad5[0x50];
+    int rechamberWhileAds;
+    float adsViewErrorMin;
+    float adsViewErrorMax;
+    byte pad6[0x14C];
+    float OOPosAnimLength[2];
+    //...
+} WeaponDef_t;
+
+struct WeaponProperties // Custom struct for g_legacyStyle
+{
+    int reloadAddTime;
+    int adsTransInTime;
+    float adsZoomInFrac;
+    float idleCrouchFactor;
+    float idleProneFactor;
+    int rechamberWhileAds;
+    float adsViewErrorMin;
+    float adsViewErrorMax;
+};
+
+
+
 typedef struct
 {
     serverState_t state;
@@ -939,6 +1020,13 @@ typedef struct
     //...
 } scr_const_t;
 
+typedef struct
+{
+    const char *name;
+    void (*func)(client_t *cl);
+} ucmd_t;
+
+
 extern gentity_t *g_entities;
 extern level_locals_t *level;
 extern pml_t *pml;
@@ -997,6 +1085,8 @@ typedef struct callback_s
 
 typedef struct customPlayerState_s
 {
+    qboolean overrideContents;
+	int contents;
     //// Bot
     int botButtons;
     int botWButtons;
@@ -1007,12 +1097,18 @@ typedef struct customPlayerState_s
     ////
     int gravity;
     int speed;
+    ///
+    bool sprintActive;
+    bool sprintRequestPending;
+    int sprintTimer;
+    int attacker;
 } customPlayerState_t;
 
 typedef struct customChallenge_s
 {
     int ignoredCount;
 } customChallenge_t;
+
 
 ////
 ////

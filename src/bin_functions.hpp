@@ -1,6 +1,7 @@
 #ifndef _BIN_FUNCTIONS_HPP_
 #define _BIN_FUNCTIONS_HPP_
 
+
 // Get
 //xtnded compatibility
 typedef void (*getuserinfo_t)( int index, char *buffer, int bufferSize );
@@ -11,6 +12,9 @@ static const setuserinfo_t setuserinfo = (setuserinfo_t)0x809030B;
 //
 ///
 
+typedef int (*VM_Call_t)(vm_t *vm, int callnum, ...);
+static const VM_Call_t VM_Call = (VM_Call_t)0x809AFBC;
+
 // Cvar
 typedef cvar_t* (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x08072a7c;
@@ -20,6 +24,9 @@ static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x08072916;
 
 typedef cvar_t* (*Cvar_Set_t)(const char *var_name, const char *value);
 static const Cvar_Set_t Cvar_Set = (Cvar_Set_t)0x8073100;
+
+typedef cvar_t * (*Cvar_Set2_t)(const char *var_name, const char *value, qboolean force);
+static const Cvar_Set2_t Cvar_Set2 = (Cvar_Set2_t)0x08072da8;
 
 // Cmd
 typedef char* (*Cmd_Argv_t)(int arg);
@@ -209,5 +216,48 @@ static const FS_Read_t FS_Read = (FS_Read_t)0x8062960;
 //SYS
 typedef qboolean (*Sys_IsLANAddress_t)(netadr_t adr);
 static const Sys_IsLANAddress_t Sys_IsLANAddress = (Sys_IsLANAddress_t)0x80D4EBC;
+
+
+// Cbuf
+typedef void (*Cbuf_ExecuteText_t)(cbufExec_t exec_when, const char* text);
+static const Cbuf_ExecuteText_t Cbuf_ExecuteText = (Cbuf_ExecuteText_t)0x805fcc0;
+
+
+// UCMDs
+typedef void (*SV_UpdateUserinfo_f_t)(client_t *cl);
+static const SV_UpdateUserinfo_f_t SV_UpdateUserinfo_f = (SV_UpdateUserinfo_f_t)0x808C743;
+
+typedef void (*SV_Disconnect_f_t)(client_t *cl);
+static const SV_Disconnect_f_t SV_Disconnect_f = (SV_Disconnect_f_t)0x808C13E;
+
+typedef void (*SV_VerifyPaks_f_t)(client_t *cl);
+static const SV_VerifyPaks_f_t SV_VerifyPaks_f = (SV_VerifyPaks_f_t)0x808C159;
+
+typedef void (*SV_ResetPureClient_f_t)(client_t *cl);
+static const SV_ResetPureClient_f_t SV_ResetPureClient_f = (SV_ResetPureClient_f_t)0x808C4EB;
+
+typedef void (*SV_BeginDownload_f_t)(client_t *cl);
+static const SV_BeginDownload_f_t SV_BeginDownload_f = (SV_BeginDownload_f_t)0x808B456;
+
+typedef void (*SV_NextDownload_f_t)(client_t *cl);
+static const SV_NextDownload_f_t SV_NextDownload_f = (SV_NextDownload_f_t)0x808B352;
+
+typedef void (*SV_StopDownload_f_t)(client_t *cl);
+static const SV_StopDownload_f_t SV_StopDownload_f = (SV_StopDownload_f_t)0x808B298;
+
+typedef void (*SV_DoneDownload_f_t)(client_t *cl);
+static const SV_DoneDownload_f_t SV_DoneDownload_f = (SV_DoneDownload_f_t)0x808B2E8;
+
+typedef void (*SV_RetransmitDownload_f_t)(client_t *cl);
+static const SV_RetransmitDownload_f_t SV_RetransmitDownload_f = (SV_RetransmitDownload_f_t)0x808B313;
+
+typedef void (*SV_wwwDownload_f_t)(client_t *cl);
+static const SV_wwwDownload_f_t SV_wwwDownload_f = (SV_wwwDownload_f_t)0x808B491;
+
+
+
+
+
+
 
 #endif

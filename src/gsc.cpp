@@ -19,6 +19,16 @@ scr_function_t scriptFunctions[] =
     {"getsubstr", gsc_utils_getsubstr, 0},
     {"strtok", gsc_utils_strtok, 0},
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
+    {"fromHex", gsc_utils_fromhex, 0},
+
+    {"strtoistr", gsc_utils_stringtoistring, 0},
+
+    {"kickallbots", gsc_player_kickallbots, 0},
+
+    {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
+    {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
+
+    {"exec", gsc_utils_exec, 0},
 
 
     {NULL, NULL, 0} // Terminator
@@ -46,8 +56,8 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
-    {"setBounds", gsc_entity_setbounds, 0},
-
+    {"setuserinfo", gsc_player_setuserinfo, 0},
+    {"getuserinfo", gsc_player_getuserinfo, 0},
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
     {"setGravity", gsc_player_setgravity, 0},
@@ -60,6 +70,7 @@ scr_method_t scriptMethods[] =
     {"getIP", gsc_player_getip, 0},
     {"kickbot", gsc_player_kickbot, 0},
     {"renameBot", gsc_player_renamebot, 0},
+    {"getplayerangles", gsc_player_getangles, 0},
 
     // Bot
     {"setUse", gsc_bots_setuse, 0},
@@ -82,6 +93,16 @@ scr_method_t scriptMethods[] =
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanRightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
+
+    {"setBounds", gsc_entity_setbounds, 0},
+    {"setClipmask", gsc_entity_setclipmask, 0},
+    {"getClipmask", gsc_entity_getclipmask, 0},
+    {"showToPlayer", gsc_entity_showtoplayer, 0},
+
+    {"isonladder", gsc_player_isonladder, 0},
+
+    {"isBot", gsc_player_isbot, 0},
+    {"lookAtAttacker", gsc_player_lookatattacker, 0},
 
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator

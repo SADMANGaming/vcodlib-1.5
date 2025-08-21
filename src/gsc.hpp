@@ -28,9 +28,11 @@
 
 
 #include "gsc_player.hpp"
-#include "gsc_entity.hpp"
 #include "gsc_utils.hpp"
 #include "gsc_bots.hpp"
+#include "gsc_entity.hpp"
+#include "gsc_weapon.hpp"
+
 #include "jump.hpp"
 
 #define STACK_UNDEFINED 0
@@ -47,6 +49,7 @@
 #define stackPushInt Scr_AddInt
 #define stackPushFloat Scr_AddFloat
 #define stackPushString Scr_AddString
+#define stackPushIString Scr_AddIString
 #define stackPushVector Scr_AddVector
 #define stackPushEntity Scr_AddEntity
 #define stackPushArray Scr_MakeArray

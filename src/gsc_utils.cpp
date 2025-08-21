@@ -241,3 +241,56 @@ void gsc_utils_getsubstr()
     tempString[i] = 0;
     stackPushString(tempString);
 }
+
+void gsc_utils_fromhex()
+{
+	char *input;
+
+	if ( !stackGetParams("s", &input) )
+	{
+		stackError("gsc_utils_fromhex() one or more arguments is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	int output;
+
+	if ( sscanf(input, "%X", &output) != 1 )
+	{
+		stackError("gsc_utils_fromhex() one or more arguments is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	stackPushInt(output);
+}
+
+void gsc_utils_stringtoistring()
+{
+    const char* string;
+
+    if ( !stackGetParams("s", &string) )
+	{
+		stackError("gsc_utils_addistring() one argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+    stackPushIString(string);
+}
+
+void gsc_utils_exec()
+{
+    const char* text;
+
+    if ( !stackGetParams("s", &text) )
+	{
+		stackError("gsc_utils_exec() one argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+    Cbuf_ExecuteText(EXEC_APPEND, text);
+    
+    stackPushBool(qtrue);
+}

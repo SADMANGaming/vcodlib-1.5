@@ -1,6 +1,8 @@
 #include <signal.h>
 #include <arpa/inet.h>
-
+#if COMPILE_LIBCURL == 1
+#include <curl/curl.h>
+#endif
 #include <memory>
 #include <tuple>
 #include <array>
@@ -40,6 +42,7 @@ cvar_t *net_port;
 cvar_t *sv_wwwDownload;
 cvar_t* sv_debugRate;
 cvar_t *sv_showAverageBPS;
+cvar_t *fs_basegame;
 
 // Custom cvars
 cvar_t *sv_cracked;
@@ -57,6 +60,23 @@ cvar_t *sv_connectMessageChallenges;
 cvar_t *sv_fastDownload;
 cvar_t *sv_downloadNotifications;
 cvar_t *sv_downloadForce;
+//cvar_t *g_playerCollision;
+cvar_t *sv_logHeartbeats;
+cvar_t *sv_logHitchWarning;
+
+cvar_t *proxy_enableAntiVPN;
+cvar_t *proxy_enableWelcome;
+
+cvar_t *discord_logTeamSay;
+cvar_t *discord_logChatURL;
+cvar_t *discord_logChat;
+
+cvar_t *g_legacyStyle;
+
+/*cvar_t *player_sprint;
+cvar_t *player_sprintMinTime;
+cvar_t *player_sprintSpeedScale;
+cvar_t *player_sprintTime;*/
 
 cHook *hook_com_init;
 cHook *hook_gametype_scripts;
@@ -66,7 +86,17 @@ cHook *hook_SV_BotUserMove;
 cHook *hook_clientendframe;
 cHook *hook_sv_begindownload_f;
 cHook *hook_PM_FlyMove;
+//cHook *hook_PmoveSingle;
+//cHook *hook_ClientSpawn;
+cHook *hook_SV_MasterHeartbeat;
+cHook *hook_SV_HitchWarning;
+cHook* hook_cvar_set2;
+cHook *hook_G_Damage;
 
+cHook *hook_ClientBegin;
+#if COMPILE_LIBCURL == 1
+cHook *hook_G_Say;
+#endif
 // Stock callbacks
 int codecallback_startgametype = 0;
 int codecallback_playerconnect = 0;
@@ -77,6 +107,7 @@ int codecallback_playerkilled = 0;
 // Custom callbacks
 int codecallback_client_spam = 0;
 int codecallback_playercommand = 0;
+int codecallback_playerconnecting = 0;
 
 // Resume addresses
 uintptr_t resume_addr_PM_WalkMove;
@@ -91,7 +122,8 @@ callback_t callbacks[] =
     { &codecallback_playerkilled, "CodeCallback_PlayerKilled" }, // g_scr_data.gametype.playerkilled
 
     { &codecallback_client_spam, "CodeCallback_CLSpam"},
-    { &codecallback_playercommand, "CodeCallback_PlayerCommand"}
+    { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
+    { &codecallback_playerconnecting, "CodeCallback_PlayerConnecting"}
 };
 
 
@@ -152,6 +184,9 @@ PM_AddEvent_t PM_AddEvent;
 PM_FootstepType_t PM_FootstepType;
 G_ClientStopUsingTurret_t G_ClientStopUsingTurret;
 G_EntUnlink_t G_EntUnlink;
+
+G_AddPredictableEvent_t G_AddPredictableEvent;
+
 trap_UnlinkEntity_t trap_UnlinkEntity;
 Scr_SetString_t Scr_SetString;
 G_SetClientContents_t G_SetClientContents;
@@ -178,6 +213,33 @@ Jump_Set_t Jump_Set;
 PM_NoclipMove_t PM_NoclipMove;
 StuckInClient_t StuckInClient;
 Q_strncpyz_t Q_strncpyz;
+//G_Say_t G_Say;
+Scr_ExecThread_t Scr_ExecThread;
+Scr_AddIString_t Scr_AddIString;
+BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
+BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
+BG_GetNumWeapons_t BG_GetNumWeapons;
+Scr_GetEntity_t Scr_GetEntity;
+Scr_GetType_t Scr_GetType;
+vectoangles_t vectoangles;
+/*void UCMD_custom_sprint(client_t *cl);
+
+static ucmd_t ucmds[] =
+{
+    {"userinfo",        SV_UpdateUserinfo_f,     },
+    {"disconnect",      SV_Disconnect_f,         },
+    {"cp",              SV_VerifyPaks_f,         },
+    {"vdr",             SV_ResetPureClient_f,    },
+    {"download",        SV_BeginDownload_f,      },
+    {"nextdl",          SV_NextDownload_f,       },
+    {"stopdl",          SV_StopDownload_f,       },
+    {"donedl",          SV_DoneDownload_f,       },
+    {"retransdl",       SV_RetransmitDownload_f, },
+    {"wwwdl",           SV_wwwDownload_f,        },
+    {"sprint",          UCMD_custom_sprint,      },
+    {NULL, NULL}
+};*/
+
 
 void custom_Com_Init(char *commandLine)
 {
@@ -206,6 +268,7 @@ void custom_Com_Init(char *commandLine)
     sv_maxRate = Cvar_FindVar("sv_maxRate");
     sv_showCommands = Cvar_FindVar("sv_showCommands");
     fs_game = Cvar_FindVar("fs_game");
+    fs_basegame = Cvar_FindVar("fs_basegame");
     sv_showAverageBPS = Cvar_FindVar("sv_showAverageBPS");
     // net
     net_ip = Cvar_FindVar("net_ip");
@@ -231,7 +294,143 @@ void custom_Com_Init(char *commandLine)
     sv_connectMessageChallenges = Cvar_Get("sv_connectMessageChallenges", "1", CVAR_ARCHIVE);
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
+    sv_logHeartbeats = Cvar_Get("sv_logHeartbeats", "1", CVAR_ARCHIVE);
+    sv_logHitchWarning = Cvar_Get("sv_logHitchWarning", "1", CVAR_ARCHIVE);
+
+    proxy_enableAntiVPN = Cvar_Get("proxy_enableAntiVPN", "0", CVAR_ARCHIVE);
+    proxy_enableWelcome = Cvar_Get("proxy_enableWelcome", "0", CVAR_ARCHIVE);
+    
+    discord_logChat = Cvar_Get("discord_logChat", "0", CVAR_ARCHIVE);
+    discord_logChatURL = Cvar_Get("discord_logChatURL", "", CVAR_ARCHIVE);
+    discord_logTeamSay = Cvar_Get("discord_logTeamSay", "0", CVAR_ARCHIVE);
+
+    g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+
+/*    g_playerCollision = Cvar_Get("g_playerCollision", "1", CVAR_ARCHIVE);
+    player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
+    player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
+    player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
+    player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);*/
 }
+
+
+
+
+
+
+
+// g_LegacyStyle from Raphael
+std::map<std::string, std::map<std::string, WeaponProperties>> weapons_properties;
+
+void toggleLegacyStyle(bool enable)
+{
+    if(enable)
+        Cvar_Set2("jump_slowdownEnable", "0", qfalse);
+    else
+        Cvar_Set2("jump_slowdownEnable", "1", qfalse);
+
+    int id_kar98k_sniper = BG_GetWeaponIndexForName("kar98k_sniper_mp");
+    //WeaponDef_t* weapon_kar98k_sniper = BG_GetInfoForWeapon(id_kar98k_sniper);
+    weaponinfo_t* weapon_kar98k_sniper = BG_GetInfoForWeapon(id_kar98k_sniper);
+    int id_springfield = BG_GetWeaponIndexForName("springfield_mp");
+    //WeaponDef_t* weapon_springfield = BG_GetInfoForWeapon(id_springfield);
+    weaponinfo_t* weapon_springfield = BG_GetInfoForWeapon(id_springfield);
+    int id_mosin_nagant_sniper = BG_GetWeaponIndexForName("mosin_nagant_sniper_mp");
+    //WeaponDef_t* weapon_mosin_nagant_sniper = BG_GetInfoForWeapon(id_mosin_nagant_sniper);
+    weaponinfo_t* weapon_mosin_nagant_sniper = BG_GetInfoForWeapon(id_mosin_nagant_sniper);
+    if (weapon_kar98k_sniper)
+    {
+        const WeaponProperties* properties_kar98k_sniper = nullptr;
+        if(enable)
+            properties_kar98k_sniper = &weapons_properties[weapon_kar98k_sniper->name]["legacy"];
+        else
+            properties_kar98k_sniper = &weapons_properties[weapon_kar98k_sniper->name]["default"];
+        weapon_kar98k_sniper->adsTransInTime = properties_kar98k_sniper->adsTransInTime;
+        weapon_kar98k_sniper->OOPosAnimLength[0] = 1.0 / (float)weapon_kar98k_sniper->adsTransInTime;
+        weapon_kar98k_sniper->adsZoomInFrac = properties_kar98k_sniper->adsZoomInFrac;
+        weapon_kar98k_sniper->idleCrouchFactor = properties_kar98k_sniper->idleCrouchFactor;
+        weapon_kar98k_sniper->idleProneFactor = properties_kar98k_sniper->idleProneFactor;
+        weapon_kar98k_sniper->rechamberWhileAds = properties_kar98k_sniper->rechamberWhileAds;
+        weapon_kar98k_sniper->adsViewErrorMin = properties_kar98k_sniper->adsViewErrorMin;
+        weapon_kar98k_sniper->adsViewErrorMax = properties_kar98k_sniper->adsViewErrorMax;
+    }
+
+    if (weapon_mosin_nagant_sniper)
+    {
+        const WeaponProperties* properties_mosin_nagant_sniper = nullptr;
+        if(enable)
+            properties_mosin_nagant_sniper = &weapons_properties[weapon_mosin_nagant_sniper->name]["legacy"];
+        else
+            properties_mosin_nagant_sniper = &weapons_properties[weapon_mosin_nagant_sniper->name]["default"];
+        weapon_mosin_nagant_sniper->reloadAddTime = properties_mosin_nagant_sniper->reloadAddTime;
+        weapon_mosin_nagant_sniper->adsTransInTime = properties_mosin_nagant_sniper->adsTransInTime;
+        weapon_mosin_nagant_sniper->OOPosAnimLength[0] = 1.0 / (float)weapon_mosin_nagant_sniper->adsTransInTime;
+        weapon_mosin_nagant_sniper->adsZoomInFrac = properties_mosin_nagant_sniper->adsZoomInFrac;
+        weapon_mosin_nagant_sniper->idleCrouchFactor = properties_mosin_nagant_sniper->idleCrouchFactor;
+        weapon_mosin_nagant_sniper->idleProneFactor = properties_mosin_nagant_sniper->idleProneFactor;
+        weapon_mosin_nagant_sniper->rechamberWhileAds = properties_mosin_nagant_sniper->rechamberWhileAds;
+        weapon_mosin_nagant_sniper->adsViewErrorMin = properties_mosin_nagant_sniper->adsViewErrorMin;
+        weapon_mosin_nagant_sniper->adsViewErrorMax = properties_mosin_nagant_sniper->adsViewErrorMax;
+    }
+
+    if (weapon_springfield)
+    {
+        const WeaponProperties* properties_springfield = nullptr;
+        if(enable)
+            properties_springfield = &weapons_properties[weapon_springfield->name]["legacy"];
+        else
+            properties_springfield = &weapons_properties[weapon_springfield->name]["default"];
+        weapon_springfield->adsTransInTime = properties_springfield->adsTransInTime;
+        weapon_springfield->OOPosAnimLength[0] = 1.0 / (float)weapon_springfield->adsTransInTime;
+        weapon_springfield->adsZoomInFrac = properties_springfield->adsZoomInFrac;
+        weapon_springfield->idleCrouchFactor = properties_springfield->idleCrouchFactor;
+        weapon_springfield->idleProneFactor = properties_springfield->idleProneFactor;
+        weapon_springfield->rechamberWhileAds = properties_springfield->rechamberWhileAds;
+        weapon_springfield->adsViewErrorMin = properties_springfield->adsViewErrorMin;
+        weapon_springfield->adsViewErrorMax = properties_springfield->adsViewErrorMax;
+    }
+}
+
+
+void custom_Cvar_Set2(const char *var_name, const char *value, qboolean force)
+{
+    bool check_g_legacyStyle = false;
+    bool g_legacyStyle_before;
+    bool g_legacyStyle_after;
+
+    if(com_sv_running != NULL && com_sv_running->integer)
+    {
+        if(!strcasecmp(var_name, g_legacyStyle->name))
+        {
+            check_g_legacyStyle = true;
+            g_legacyStyle_before = g_legacyStyle->integer ? true : false;
+        }
+    }
+    
+    hook_cvar_set2->unhook();
+    cvar_t* (*Cvar_Set2)(const char *var_name, const char *value, qboolean force);
+    *(int *)&Cvar_Set2 = hook_cvar_set2->from;
+
+    if(check_g_legacyStyle)
+    {
+        cvar_t* var = Cvar_Set2(var_name, value, force);
+        if(var)
+        {
+            g_legacyStyle_after = var->integer ? true : false;
+            if(g_legacyStyle_before != g_legacyStyle_after)
+                toggleLegacyStyle(var->integer);
+        }
+    }
+    else
+        Cvar_Set2(var_name, value, force);
+
+    hook_cvar_set2->hook();
+}
+
+
+
+
+
 
 
 
@@ -263,6 +462,8 @@ int custom_GScr_LoadGameTypeScript()
     {
         if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback: PlayerCommand
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
+//        else if(!strcmp(callbacks[i].name, "CodeCallback_PlayerConnecting")) // Custom callback: 
+//            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
@@ -470,11 +671,37 @@ int custom_ClientEndFrame(gentity_t *ent)
         if(customPlayerState[num].speed > 0)
         ent->client->ps.speed = customPlayerState[num].speed;
 
+//        if(customPlayerState[num].sprintActive)
+//        ent->client->ps.speed *= player_sprintSpeedScale->value;
+
     }
 
     return ret;
 }
 
+void custom_G_Damage(gentity_s *self, gentity_s *inflictor, gentity_s *ent, const float *vDir,const float *vPoint, int value, /*int dflags,*/ int meansOfDeath, int hitLoc, int timeOffset)
+{
+    hook_G_Damage->unhook();
+    void (*G_Damage)(gentity_s *self, gentity_s *inflictor, gentity_s *ent, const float *vDir,const float *vPoint, int value, /*int dflags,*/ int meansOfDeath, int hitLoc, int timeOffset);
+    *(int*)&G_Damage = hook_G_Damage->from;
+    G_Damage(self, inflictor, ent, vDir, vPoint, value, /*dflags,*/ meansOfDeath, hitLoc, timeOffset);
+    hook_G_Damage->hook();
+
+    int clientNum = self - g_entities;
+    int attackerNum = ent - g_entities;
+
+    if (clientNum >= 0 && clientNum < sv_maxclients->integer &&
+        attackerNum >= 0 && attackerNum < sv_maxclients->integer)
+    {
+        customPlayerState[clientNum].attacker = attackerNum;
+        //printf("Set attacker for client %d to client %d\n", clientNum, attackerNum);
+    }
+    else
+    {
+        printf("Failed to set attacker for client %d\n", clientNum);
+    }
+
+}
 
 void custom_PM_FlyMove()
 {
@@ -491,6 +718,252 @@ void custom_PM_FlyMove()
     hook_PM_FlyMove->hook();
 }
 
+
+
+
+
+//////////// SPRINT
+/*
+void custom_ClientSpawn(gentity_t *ent, const float *spawn_origin, const float *spawn_angles)
+{
+    hook_ClientSpawn->unhook();
+    void (*ClientSpawn)(gentity_t *ent, const float *spawn_origin, const float *spawn_angles);
+    *(int*)&ClientSpawn = hook_ClientSpawn->from;
+    ClientSpawn(ent, spawn_origin, spawn_angles);
+    hook_ClientSpawn->hook();
+
+    int clientNum = ent - g_entities;
+
+    // Reset sprint
+    customPlayerState[clientNum].sprintActive = false;
+    customPlayerState[clientNum].sprintRequestPending = false;
+    customPlayerState[clientNum].sprintTimer = 0;
+}
+
+
+/.* See:
+- https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/bgame/bg_weapons.cpp#L481
+- CoD4 1.7: 080570ae
+*./
+void PM_UpdateSprint(pmove_t *pmove)
+{
+    int timerMsec;
+    int clientNum;
+    float sprint_time;
+    float sprint_minTime;
+    gentity_t *gentity;
+    client_t *client;
+
+    clientNum = pmove->ps->clientNum;
+    gentity = &g_entities[clientNum];
+    client = &svs.clients[clientNum];
+    sprint_time = player_sprintTime->value * 1000.0;
+    sprint_minTime = player_sprintMinTime->value * 1000.0;
+    
+    if (sprint_time > 0)
+    {
+        if (customPlayerState[clientNum].sprintRequestPending)
+        {
+            if (client->lastUsercmd.forwardmove != KEY_FORWARD)
+            {
+                customPlayerState[clientNum].sprintRequestPending = false;
+                return;
+            }
+            
+            if ((gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE))
+            {
+                G_AddPredictableEvent(gentity, EV_STANCE_FORCE_STAND, 0);
+                return;
+            }
+        }
+        
+        if (customPlayerState[clientNum].sprintActive)
+        {
+            timerMsec = customPlayerState[clientNum].sprintTimer + pml->msec;
+
+            if((gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE))
+                customPlayerState[clientNum].sprintActive = false;
+            if(client->lastUsercmd.forwardmove != KEY_FORWARD)
+                customPlayerState[clientNum].sprintActive = false;
+        }
+        else
+            timerMsec = customPlayerState[clientNum].sprintTimer - pml->msec;
+        
+        if(timerMsec < 0)
+            timerMsec = 0;
+        customPlayerState[clientNum].sprintTimer = timerMsec;
+        
+        if (customPlayerState[clientNum].sprintRequestPending)
+        {
+            if(gentity->s.groundEntityNum == 1023)
+                return; // Player is in air, wait for landing
+            else if(customPlayerState[clientNum].sprintTimer < (sprint_time - sprint_minTime))
+                customPlayerState[clientNum].sprintActive = true; // Allow sprint
+            customPlayerState[clientNum].sprintRequestPending = false;
+        }
+        else if(customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
+            customPlayerState[clientNum].sprintActive = false; // Reached max time, disable sprint
+    }
+    else
+    {
+        customPlayerState[clientNum].sprintActive = false;
+        customPlayerState[clientNum].sprintTimer = 0;
+    }
+}
+
+void custom_PmoveSingle(pmove_t *pmove)
+{
+    hook_PmoveSingle->unhook();
+    void (*PmoveSingle)(pmove_t *pmove);
+    *(int*)&PmoveSingle = hook_PmoveSingle->from;
+    PmoveSingle(pmove);
+    hook_PmoveSingle->hook();
+
+    PM_UpdateSprint(pmove);
+}
+
+void UCMD_custom_sprint(client_t *cl)
+{
+    int clientNum = cl - svs.clients;
+    if (!player_sprint->integer)
+    {
+        std::string message = "e \"";
+        message += "Sprint is not enabled on this server.";
+        message += "\"";
+        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, message.c_str());
+        return;
+    }
+    
+    if(customPlayerState[clientNum].sprintActive)
+        customPlayerState[clientNum].sprintActive = false;
+    else if(customPlayerState[clientNum].sprintRequestPending)
+        customPlayerState[clientNum].sprintRequestPending = false;
+    else
+        customPlayerState[clientNum].sprintRequestPending = true;
+}
+
+void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean clientOK)
+{
+    ucmd_t *u;
+
+    ((void(*)(int))0x080cb8ee)(1); // Unknown function, seems related to scrAnimGlob
+    Cmd_TokenizeString(s);
+
+    for (u = ucmds; u->name; u++)
+    {
+        if (!strcmp(Cmd_Argv(0), u->name))
+        {
+            u->func(cl);
+            break;
+        }
+    }
+
+    if(clientOK)
+        if(!u->name && sv.state == SS_GAME)
+            VM_Call(gvm, GAME_CLIENT_COMMAND, cl - svs.clients);
+}
+*/
+
+
+
+
+
+/*
+void custom_G_SetClientContents(gentity_t *ent)
+{
+	int id = ent - g_entities;
+
+	/.* New code start: g_playerCollision dvar *./
+	if ( !g_playerCollision->integer )
+		return;
+	/.* New code end *./
+
+	if ( ent->client->noclip == 0 )
+	{
+		if ( ent->client->ufo == 0 )
+		{
+			if ( (ent->client->sess).sessionState == STATE_DEAD )
+			{
+				ent->r.contents = 0;
+			}
+			else
+			{
+				ent->r.contents = CONTENTS_BODY;
+
+				/.* New code start: per-player/team collison *./
+				if ( customPlayerState[id].overrideContents )
+					ent->r.contents = customPlayerState[id].contents;
+				/.* New code end *./
+			}
+		}
+		else
+		{
+			ent->r.contents = 0;
+		}
+	}
+	else
+	{
+		ent->r.contents = 0;
+	}
+}*/
+
+
+qboolean logHeartbeat = qtrue;
+void custom_SV_MasterHeartbeat(const char *hbname)
+{
+	int sending_heartbeat_string_offset = 0x080dfda0;
+
+	if ( logHeartbeat && sv_logHeartbeats->integer != 1 )
+	{
+		byte disable = 0;
+		memcpy((void *)sending_heartbeat_string_offset, &disable, 1);
+		logHeartbeat = qfalse;
+		Com_DPrintf("Disabled heartbeat logging\n");
+	}
+	else if ( !logHeartbeat && sv_logHeartbeats->integer == 1 )
+	{
+		byte enable = 0x53; // "S"
+		memcpy((void *)sending_heartbeat_string_offset, &enable, 1);
+		logHeartbeat = qtrue;
+		Com_DPrintf("Enabled heartbeat logging\n");
+	}
+
+	hook_SV_MasterHeartbeat->unhook();
+	void (*SV_MasterHeartbeat)(const char *hbname);
+	*(int *)&SV_MasterHeartbeat = hook_SV_MasterHeartbeat->from;
+	SV_MasterHeartbeat(hbname);
+	hook_SV_MasterHeartbeat->hook();
+}
+
+
+qboolean logHitchWarning = qtrue;
+void custom_SV_HitchWarning(int param1)
+{
+	int hitch_warning_string_offset = 0x80d9800;
+
+	if ( logHitchWarning && sv_logHitchWarning->integer != 1 )
+	{
+		byte disable = 0;
+		memcpy((void *)hitch_warning_string_offset, &disable, 1);
+		logHitchWarning = qfalse;
+//		Com_DPrintf("Disabled hitch warning logging\n");
+	}
+	else if ( !logHitchWarning && sv_logHeartbeats->integer == 1 )
+	{
+		byte enable = 0x53; // "S"
+		memcpy((void *)hitch_warning_string_offset, &enable, 1);
+		logHitchWarning = qtrue;
+//		Com_DPrintf("Enabled hitch warning logging\n");
+	}
+
+	hook_SV_HitchWarning->unhook();
+	void (*SV_HitchWarning)(int param1);
+	*(int *)&SV_HitchWarning = hook_SV_HitchWarning->from;
+	SV_HitchWarning(param1);
+	hook_SV_HitchWarning->hook();
+}
+
+
 const char* hook_AuthorizeState(int arg)
 {
     const char* s = Cmd_Argv(arg);
@@ -499,8 +972,273 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
+#if COMPILE_LIBCURL == 1
+#include <iomanip>
+std::string escape_json(const std::string& input) {
+    std::ostringstream ss;
+    for (char c : input) {
+        // Skip unwanted control characters completely (like 0x15)
+        if ((unsigned char)c < 0x20 && c != '\b' && c != '\f' && c != '\n' && c != '\r' && c != '\t') {
+            // skip this char (don’t add to output)
+            continue;
+        }
+
+        switch (c) {
+            case '\"': ss << "\\\""; break;
+            case '\\': ss << "\\\\"; break;
+            case '\b': ss << "\\b"; break;
+            case '\f': ss << "\\f"; break;
+            case '\n': ss << "\\n"; break;
+            case '\r': ss << "\\r"; break;
+            case '\t': ss << "\\t"; break;
+            default:
+                if ((unsigned char)c < 0x20) {
+                    // This handles any remaining control chars (usually won't happen after above filter)
+                    ss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)(unsigned char)c;
+                } else {
+                    ss << c;
+                }
+        }
+    }
+    return ss.str();
+}
+
+
+
+
+void custom_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
+{
+    hook_G_Say->unhook();
+    void (*G_Say)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
+    *(int*)&G_Say = hook_G_Say->from;
+    G_Say(ent, NULL, mode, chatText);
+    hook_G_Say->hook();
+
+    CURL *curl;
+    CURLcode responseCode;
+    struct curl_slist *headers = NULL;
+
+    int clientNum = ent - g_entities;
+    client_t *cl = &svs.clients[clientNum];
+    char* name = cl->name;
+
+//    printf("%s\n", name);
+
+//    printf("%d\n", mode);
+
+
+    if(discord_logChat->integer == 0)
+    return;
+
+    if(mode == 1 && discord_logTeamSay->integer == 0)
+    return;
+
+
+
+    
+    //std::string payload = "{\"content\":\"" + std::string(chatText) + "\"}";
+    std::string escapedText = escape_json(chatText);  // Escape special characters
+    std::string payload = "{\"content\":\"" + std::string("``") + std::string(name) + std::string(" : ") + std::string(escapedText) + std::string("``") +"\"}";
+
+    curl = curl_easy_init();
+    if (curl)
+    {
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_URL, discord_logChatURL->string);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 2000L); // Optional: prevent hanging
+
+        responseCode = curl_easy_perform(curl);
+        if (responseCode != CURLE_OK)
+        {
+            Com_Printf("curl_easy_perform() failed: %s\n", curl_easy_strerror(responseCode));
+        }
+
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
+    }
+    else
+    {
+        Com_Printf("[Discord_Logger]: curl_easy_init() failed\n");
+    }
+}
+
+// Write callback to store response
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* out) {
+    size_t totalSize = size * nmemb;
+    out->append((char*)contents, totalSize);
+    return totalSize;
+}
+
+// Simple string extractor
+std::string extractValue(const std::string& json, const std::string& key) {
+    size_t keyPos = json.find("\"" + key + "\"");
+    if (keyPos == std::string::npos) return "";
+
+    size_t colon = json.find(':', keyPos);
+    if (colon == std::string::npos) return "";
+
+    size_t start = json.find_first_of("\"", colon + 1);
+    size_t end = json.find_first_of("\"", start + 1);
+    if (start == std::string::npos || end == std::string::npos) return "";
+
+    return json.substr(start + 1, end - start - 1);
+}
+
+bool fetchProxyAndCountry(const std::string& ip, std::string& proxy, std::string& country) {
+
+    std::cout << ip << std::endl;
+    std::string url = "https://proxycheck.io/v2/" + ip + "?vpn=1&asn=1";
+    std::string response;
+
+
+    CURL* curl = curl_easy_init();
+    if (!curl) return false;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "curl/7.0");
+
+    CURLcode res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) return false;
+
+    // Find the section for the IP
+    size_t ipSection = response.find(ip);
+    if (ipSection == std::string::npos) return false;
+
+    std::string ipData = response.substr(ipSection);
+    proxy = extractValue(ipData, "proxy");
+    country = extractValue(ipData, "country");
+
+    return !proxy.empty() && !country.empty();
+}
+#endif
+
+
+
+
+
+#if COMPILE_LIBCURL == 1
+std::string name;
+std::string country;
+#endif
 
 void custom_SV_DirectConnect(netadr_t from) {
+
+    int maxconnecttime = 10000;
+
+    if (sv_fixq3fill->integer == 1) {
+        int connectingCount = 0;
+        client_t *duplicateCl = NULL;
+
+        for (int i = 0; i < sv_maxclients->integer; i++) {
+            client_t *cl = &svs.clients[i];
+
+            if (cl->state == CS_CONNECTED && NET_CompareBaseAdr(from, cl->netchan.remoteAddress)) {
+                int delta = svs.time - cl->lastPacketTime;
+
+                if (delta < maxconnecttime) {
+                    connectingCount++;
+                    duplicateCl = cl;
+                }
+            }
+        }
+
+        if (connectingCount >= 1 && duplicateCl != NULL) {
+            Com_Printf("Rejected duplicate CONNECTING client from IP: %s\n", NET_AdrToString(from));
+            NET_OutOfBandPrint(NS_SERVER, from, "Only one CONNECTING client allowed per IP (for a short time).\n");
+            SV_DropClient(duplicateCl, "Duplicate IP detected!");
+            return;
+        }
+    }
+
+    char* userinfo = Cmd_Argv(1);
+    std::stringstream ss;
+    ss << "connect \"" << userinfo << "\"";
+
+    if (*sv_connectMessage->string && sv_connectMessageChallenges->integer) {
+        int challengeVal = atoi(Info_ValueForKey(userinfo, "challenge"));
+        for (int i = 0; i < MAX_CHALLENGES; i++) {
+            if (NET_CompareAdr(from, svs.challenges[i].adr) &&
+                svs.challenges[i].challenge == challengeVal &&
+                customChallenge[i].ignoredCount < sv_connectMessageChallenges->integer) {
+
+                NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
+                customChallenge[i].ignoredCount++;
+                return;
+            }
+        }
+    }
+#if COMPILE_LIBCURL == 1
+
+    std::string proxy;
+    std::string adr = NET_AdrToString(from);
+    size_t colonPos = adr.find(':');
+    std::string ipOnly = (colonPos != std::string::npos) ? adr.substr(0, colonPos) : adr;
+
+    if (fetchProxyAndCountry(ipOnly, proxy, country)) {
+        std::cout << "Proxy: " << proxy << "\n";
+        std::cout << "Country: " << country << "\n";
+    } else {
+        std::cerr << "Failed to fetch or parse response.\n";
+    }
+
+
+
+
+    if(proxy_enableAntiVPN->integer)
+    {
+        if (proxy == "yes") {
+            Com_Printf("Rejected proxy client from IP: %s (Country: %s)\n", NET_AdrToString(from), country.c_str());
+            NET_OutOfBandPrint(NS_SERVER, from, "print\nProxy/VPN connections are not allowed.\n");
+            return;
+        }
+    }
+
+    
+    name = Info_ValueForKey(userinfo, "name");
+
+//    std::string msg = std::string("say Welcome dear ^7") + name + "^7 from ^7" + country;
+//    const char* finalMsg = msg.c_str();
+    
+//    Cbuf_ExecuteText(EXEC_APPEND, finalMsg);
+
+
+#endif
+//    stackPushString(ipOnly.c_str());
+//    short ret = Scr_ExecEntThread(&g_entities[0], codecallback_playerconnecting, 1);
+//    Scr_FreeThread(ret);
+
+    // Allow connection
+    SV_DirectConnect(from);
+}
+
+void custom_ClientBegin(unsigned int clientNum)
+{
+    #if COMPILE_LIBCURL == 1
+    if(proxy_enableWelcome->integer)
+    {
+        std::string msg = std::string("say Welcome dear ^7") + name + "^7 from ^7" + country;
+        const char* finalMsg = msg.c_str();
+    
+        Cbuf_ExecuteText(EXEC_APPEND, finalMsg);
+    }
+    #endif
+
+
+    hook_ClientBegin->unhook();
+    void (*ClientBegin)(unsigned int clientNum);
+    *(int*)&ClientBegin = hook_ClientBegin->from;
+    ClientBegin(clientNum);
+    hook_ClientBegin->hook();
+}
+
+
+/*void custom_SV_DirectConnect(netadr_t from) { // last working
 
     int maxconnecttime = 10000; 
 
@@ -548,10 +1286,9 @@ void custom_SV_DirectConnect(netadr_t from) {
     }
 }
 
-
     // Allow connection
     SV_DirectConnect(from);
-}
+}*/
 
 
 qboolean hook_StuckInClient(gentity_s *self)
@@ -619,6 +1356,7 @@ static void custom_SV_DumpUser_f() {
     Info_Print(cl->userinfo);
 }
 
+
 void custom_SV_AddOperatorCommands()
 {
     hook_sv_addoperatorcommands->unhook();
@@ -628,7 +1366,9 @@ void custom_SV_AddOperatorCommands()
 
     Cmd_AddCommand("vcodlib", vcl_version);
     Cmd_AddCommand("getserverip", getserverip);
-    Cmd_RemoveCommand("dumpuser");
+
+
+    Cmd_RemoveCommand("dumpuser"); // 200 iq shit 
     Cmd_AddCommand("dumpuser", custom_SV_DumpUser_f);
     hook_sv_addoperatorcommands->hook();
 }
@@ -1133,6 +1873,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     
     if (*fs_game->string)
         sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
+    else if (*fs_basegame->string)
+            sprintf(libPath, "%s/game.mp.i386.so", fs_basegame->string);
     else
         sprintf(libPath, "main/game.mp.i386.so");
     
@@ -1234,10 +1976,22 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     StuckInClient = (StuckInClient_t)dlsym(libHandle, "StuckInClient");
     trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(libHandle, "trap_SendServerCommand");
     Q_strncpyz = (Q_strncpyz_t)dlsym(libHandle, "Q_strncpyz");
+    G_AddPredictableEvent = (G_AddPredictableEvent_t)dlsym(libHandle, "G_AddPredictableEvent");
+//    G_Say = (G_Say_t)dlsym(libHandle, "G_Say");
+    Scr_AddIString = (Scr_AddIString_t)dlsym(libHandle, "Scr_AddIString");
+
+    Scr_ExecThread = (Scr_ExecThread_t)dlsym(libHandle, "Scr_ExecThread");
+    BG_GetWeaponIndexForName = (BG_GetWeaponIndexForName_t)dlsym(libHandle, "BG_GetWeaponIndexForName");
+    BG_GetInfoForWeapon = (BG_GetInfoForWeapon_t)dlsym(libHandle, "BG_GetInfoForWeapon");
+    BG_GetNumWeapons = (BG_GetNumWeapons_t)dlsym(libHandle, "BG_GetNumWeapons");
+
+    Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
+    Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");
+    vectoangles = (vectoangles_t)dlsym(libHandle, "vectoangles");
     ////
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
-
+//    hook_jmp((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
 
 
     //Jump
@@ -1257,7 +2011,16 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1354, (int)custom_PM_FlyMove);
     hook_PM_FlyMove->hook();
 
-
+    hook_ClientBegin = new cHook((int)dlsym(libHandle, "ClientBegin"), (int)custom_ClientBegin);
+    hook_ClientBegin->hook();
+#if COMPILE_LIBCURL == 1
+    hook_G_Say = new cHook((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
+    hook_G_Say->hook();
+#endif
+    hook_G_Damage = new cHook((int)dlsym(libHandle, "G_Damage"), (int)custom_G_Damage);
+    hook_G_Damage->hook();
+//    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
+//    hook_ClientSpawn->hook();
 
     return libHandle;
 }
@@ -1299,6 +2062,8 @@ public:
         //Q3fill fix | Not sure if it has any bugs. I wait till someone reports 
         hook_call(0x0809370B, (int)custom_SV_DirectConnect);
 
+//        hook_jmp(0x0808c7a9, (int)custom_SV_ExecuteClientCommand);
+
         hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
 
 
@@ -1312,8 +2077,17 @@ public:
         hook_sv_begindownload_f = new cHook(0x0808B456, (int)custom_SV_BeginDownload_f);
         hook_sv_begindownload_f->hook();
 
+        hook_SV_MasterHeartbeat = new cHook(0x80922B1, (int)custom_SV_MasterHeartbeat);
+		hook_SV_MasterHeartbeat->hook();
+
+        hook_SV_HitchWarning = new cHook(0x080922b1, (int)custom_SV_HitchWarning);
+		hook_SV_HitchWarning->hook();
+
         hook_sv_addoperatorcommands = new cHook(0x808877F, (int)custom_SV_AddOperatorCommands);
         hook_sv_addoperatorcommands->hook();
+
+        hook_cvar_set2 = new cHook(0x08072da8, (int)custom_Cvar_Set2);
+        hook_cvar_set2->hook();
 
 
         printf("> [PLUGIN LOADED]\n");

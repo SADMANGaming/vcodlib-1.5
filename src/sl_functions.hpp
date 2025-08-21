@@ -1,6 +1,11 @@
 #ifndef _SL_FUNCTIONS_HPP_
 #define _SL_FUNCTIONS_HPP_
 
+
+// vec
+typedef void * (*vectoangles_t)(const vec3_t value1, vec3_t angles);
+extern vectoangles_t vectoangles;
+
 //va
 typedef char* (*va_t)(const char *format, ...);
 extern va_t va;
@@ -14,6 +19,7 @@ typedef float (*PitchForYawOnNormal_t)(const float fYaw, const vec3_t normal);
 typedef float (*AngleDelta_t)(float angle1, float angle2);
 typedef void (*player_die_t)(gentity_s *self, gentity_s *inflictor, gentity_s *attacker, int damage, int meansOfDeath, int iWeapon, const float *vDir, int hitLoc);
 typedef void (*SetClientViewAngle_t)(gentity_s *ent, const float *angle);
+extern SetClientViewAngle_t SetClientViewAngle;
 typedef void (*ClientEndFrame_t)(gentity_s *entity);
 typedef void (*ClientThink_real_t)(gentity_s *ent, usercmd_s *ucmd);
 typedef void (*StopFollowing_t)(gentity_s *ent);
@@ -37,6 +43,17 @@ typedef int (*BG_CheckProneValid_t)(int passEntityNum, const float *const vPos, 
     void (*)(trace_t *, const vec3_t, const vec3_t, const vec3_t, const vec3_t, int, int),
     void (*)(trace_t *, const vec3_t, const vec3_t, const vec3_t, const vec3_t, int, int),
     int proneCheckType, float prone_feet_dist);
+
+//typedef WeaponDef_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+typedef weaponinfo_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+extern BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
+
+typedef int (*BG_GetWeaponIndexForName_t)(const char *name);
+extern BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
+
+typedef int (*BG_GetNumWeapons_t)(void);
+extern BG_GetNumWeapons_t BG_GetNumWeapons;
+
 ////
 
 //Cmd
@@ -49,6 +66,8 @@ typedef void (*G_EntUnlink_t)(gentity_s *ent);
 typedef void (*G_SetClientContents_t)(gentity_s *ent);
 typedef void (*G_SetOrigin_t)(gentity_s *ent, const float *origin);
 typedef qboolean (*G_ClientCanSpectateTeam_t)(gclient_s *client, int team);
+typedef void (*G_AddPredictableEvent_t)(gentity_t *ent, int event, int eventParm);
+extern G_AddPredictableEvent_t G_AddPredictableEvent;
 
 //// PM
 typedef bool (*PM_CheckJump_t)();
@@ -121,6 +140,9 @@ extern Scr_AddArray_t Scr_AddArray;
 typedef short (*Scr_ExecEntThread_t)(gentity_t* ent, int callbackHook, unsigned int numArgs);
 extern Scr_ExecEntThread_t Scr_ExecEntThread;
 
+typedef short (*Scr_ExecThread_t)(int callbackHook, unsigned int numArgs);
+extern Scr_ExecThread_t Scr_ExecThread;
+
 typedef short (*Scr_FreeThread_t)(short thread_id);
 extern Scr_FreeThread_t Scr_FreeThread;
 
@@ -129,7 +151,18 @@ typedef int (*Scr_GetFunctionHandle_t)(const char* scriptName, const char* label
 typedef int (*Scr_IsSystemActive_t)();
 typedef void (*Scr_SetString_t)(uint16_t *to, unsigned int from);
 
+typedef void (*Scr_AddIString_t)(const char* string);
+extern Scr_AddIString_t Scr_AddIString;
 
+typedef int (*Scr_GetType_t)(unsigned int param);
+extern Scr_GetType_t Scr_GetType;
+
+typedef gentity_t * (*Scr_GetEntity_t)(unsigned int index);
+extern Scr_GetEntity_t Scr_GetEntity;
+
+// G
+//typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
+//extern G_Say_t G_Say;
 
 
 // Trap
