@@ -20,6 +20,9 @@ scr_function_t scriptFunctions[] =
     {"strtok", gsc_utils_strtok, 0},
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
     {"fromHex", gsc_utils_fromhex, 0},
+    {"toLower", gsc_utils_tolower, 0},
+    {"getSystemTime", gsc_utils_getsystemtime, 0},
+    {"logPrintConsole", gsc_utils_logprintconsole, 0},
 
     {"strtoistr", gsc_utils_stringtoistring, 0},
 

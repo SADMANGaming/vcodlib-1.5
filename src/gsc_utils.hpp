@@ -16,5 +16,8 @@ void gsc_utils_sendcommandtoclient();
 void gsc_utils_fromhex();
 void gsc_utils_exec();
 void gsc_utils_stringtoistring();
+void gsc_utils_tolower();
+void gsc_utils_getsystemtime();
+void gsc_utils_logprintconsole();
 
 #endif

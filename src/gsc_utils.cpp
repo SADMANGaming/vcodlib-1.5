@@ -294,3 +294,63 @@ void gsc_utils_exec()
     
     stackPushBool(qtrue);
 }
+
+void gsc_utils_tolower() // From cod2rev
+{
+    char c;
+    int i;
+    const char *string;
+    char tempString[MAX_STRINGLENGTH];
+
+    if (!stackGetParams("s", &string))
+    {
+        stackError("gsc_utils_tolower() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    for (i = 0; i < MAX_STRINGLENGTH; ++i)
+    {
+        c = tolower(*string);
+        tempString[i] = c;
+
+        if (!c)
+        {
+            stackPushString(tempString);
+            return;
+        }
+
+        ++string;
+    }
+
+    stackError("gsc_utils_tolower() string too long");
+}
+
+void gsc_utils_getsystemtime()
+{
+    time_t timer;
+    stackPushInt(time(&timer));
+}
+
+void gsc_utils_logprintconsole()
+{
+    char *str;
+
+    if (!stackGetParams("s", &str))
+    {
+        stackError("gsc_utils_logprintconsole() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if (!strlen(str) || strlen(str) > MAX_STRINGLENGTH)
+    {
+        stackError("gsc_utils_logprintconsole() invalid string length");
+        stackPushUndefined();
+        return;
+    }
+
+    Com_Printf("%s", str);
+
+    stackPushBool(qtrue);
+}
