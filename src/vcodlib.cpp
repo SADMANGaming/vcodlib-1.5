@@ -63,6 +63,7 @@ cvar_t *sv_downloadForce;
 //cvar_t *g_playerCollision;
 cvar_t *sv_logHeartbeats;
 cvar_t *sv_logHitchWarning;
+cvar_t *sv_botHook;
 
 cvar_t *proxy_enableAntiVPN;
 cvar_t *proxy_enableWelcome;
@@ -296,6 +297,7 @@ void custom_Com_Init(char *commandLine)
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
     sv_logHeartbeats = Cvar_Get("sv_logHeartbeats", "1", CVAR_ARCHIVE);
     sv_logHitchWarning = Cvar_Get("sv_logHitchWarning", "1", CVAR_ARCHIVE);
+    sv_botHook = Cvar_Get("sv_botHook", "0", CVAR_ARCHIVE);
 
     proxy_enableAntiVPN = Cvar_Get("proxy_enableAntiVPN", "0", CVAR_ARCHIVE);
     proxy_enableWelcome = Cvar_Get("proxy_enableWelcome", "0", CVAR_ARCHIVE);
@@ -609,13 +611,14 @@ customChallenge_t customChallenge[MAX_CHALLENGES];
 customPlayerState_t customPlayerState[MAX_CLIENTS];
 void custom_SV_BotUserMove(client_t *client)
 {
-
-    hook_SV_BotUserMove->unhook();
-    void (*SV_BotUserMove)(client_t *client);
-    *(int*)&SV_BotUserMove = hook_SV_BotUserMove->from;
-    SV_BotUserMove(client);
-    hook_SV_BotUserMove->hook();
-    return;
+    if (!sv_botHook->integer)
+        hook_SV_BotUserMove->unhook();
+        void (*SV_BotUserMove)(client_t *client);
+        *(int*)&SV_BotUserMove = hook_SV_BotUserMove->from;
+        SV_BotUserMove(client);
+        hook_SV_BotUserMove->hook();
+        return;
+    }
     
     int num;
     usercmd_t ucmd = {0};
@@ -2025,6 +2028,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     return libHandle;
 }
 
+void Crash_Report(){
+
+}
+
 class vcodlib
 {
 public:
@@ -2088,6 +2095,8 @@ public:
 
         hook_cvar_set2 = new cHook(0x08072da8, (int)custom_Cvar_Set2);
         hook_cvar_set2->hook();
+
+        hook_jmp(0x80A98AE, (int)Crash_Report);
 
 
         printf("> [PLUGIN LOADED]\n");
