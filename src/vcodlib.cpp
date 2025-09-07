@@ -612,6 +612,7 @@ customPlayerState_t customPlayerState[MAX_CLIENTS];
 void custom_SV_BotUserMove(client_t *client)
 {
     if (!sv_botHook->integer)
+    {
         hook_SV_BotUserMove->unhook();
         void (*SV_BotUserMove)(client_t *client);
         *(int*)&SV_BotUserMove = hook_SV_BotUserMove->from;
