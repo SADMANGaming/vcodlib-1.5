@@ -101,11 +101,11 @@
   * Effect: If set to you'r Discord channel's webhook URL, it will send game chat messages to that channel through webhook.
 
  * `discord_logTeamSay`
-  * Type: Int
-  * Default: `"0"`
-  * Effect: If set to 1 it will send game team say messages to Discord.
+   * Type: Int
+   * Default: `"0"`
+   * Effect: If set to 1 it will send game team say messages to Discord.
 
  * `sv_botHook`
-  * Type: Int
-  * Default: `"0"`
-  * Effect: If set to 1 you can use vcodlib GSC bot methods, if set to 0 you can't use vcodlib bot GSC bot methods.
+   * Type: Int
+   * Default: `"0"`
+   * Effect: If set to 1 you can use vcodlib GSC bot methods, if set to 0 you can't use vcodlib bot GSC bot methods.
