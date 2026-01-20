@@ -924,9 +924,10 @@ typedef struct weaponinfo_t
     byte gap_0x2FC[0xE4];
     int adsReloadTransTime; // 0x3E0
     byte gap_0x3E4[0x44];
-    float OOPosAnimLength[2];   // 0x428
+    float OOPosAnimLength[2];   // 0x428   
     //...
 } weaponinfo_t;
+
 
 
 /////////// DIRTRAV

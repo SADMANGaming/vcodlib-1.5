@@ -30,6 +30,7 @@ scr_function_t scriptFunctions[] =
 
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
     {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
+    {"getFullClipAmmo", gsc_weapon_getfullclipammo, 0},
 
     {"exec", gsc_utils_exec, 0},
 

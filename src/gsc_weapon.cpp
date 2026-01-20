@@ -67,3 +67,35 @@ void gsc_weapons_setweaponfusetime()
 
     Scr_AddBool(qtrue);
 }
+
+void gsc_weapon_getfullclipammo()
+{
+    char *weaponName;
+
+    if (!stackGetParams("s", &weaponName))
+    {
+        stackError("gsc_weapon_getfullclipammo() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    int id = BG_GetWeaponIndexForName(weaponName);
+    if (!isValidWeaponId(id))
+    {
+        stackPushUndefined();
+        return;
+    }
+
+    weaponinfo_t *weapon = BG_GetInfoForWeapon(id);
+    if (!weapon)
+    {
+        stackPushUndefined();
+        return;
+    }
+    // ts tuff man
+    // clipsize = weapon + 0x1B0 / 4 ( 4 = char* size)
+    // so clipsize offset is 108
+    int clipSize = *(int *)((char *)weapon + 0x1B0);
+
+    stackPushInt(clipSize);
+}
