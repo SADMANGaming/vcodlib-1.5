@@ -118,6 +118,9 @@ static const SV_SendMessageToClient_t SV_SendMessageToClient = (SV_SendMessageTo
 typedef void (*SV_UpdateServerCommandsToClient_t)(client_t *client, msg_t *msg);
 static const SV_UpdateServerCommandsToClient_t SV_UpdateServerCommandsToClient = (SV_UpdateServerCommandsToClient_t)0x80959D0;//tbd
 
+//typedef void (*SV_Trace_t)(trace_t *results, const float *start, const float *mins, const float *maxs, const float *end, int passEntityNum, int contentMask, int locational, uint8_t *priorityMap, int staticmodels);
+//static const SV_Trace_t SV_Trace = (SV_Trace_t)0x0809D884;
+
 // SVC
 typedef void (*SVC_Status_t)(netadr_t from);
 static const SVC_Status_t SVC_Status = (SVC_Status_t)0x0809246E;

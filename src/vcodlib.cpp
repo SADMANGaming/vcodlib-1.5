@@ -60,7 +60,7 @@ cvar_t *sv_connectMessageChallenges;
 cvar_t *sv_fastDownload;
 cvar_t *sv_downloadNotifications;
 cvar_t *sv_downloadForce;
-//cvar_t *g_playerCollision;
+cvar_t *g_playerCollision;
 cvar_t *sv_logHeartbeats;
 cvar_t *sv_logHitchWarning;
 cvar_t *sv_botHook;
@@ -73,7 +73,8 @@ cvar_t *discord_logChatURL;
 cvar_t *discord_logChat;
 
 cvar_t *g_legacyStyle;
-
+cvar_t *sv_waterboost;
+cvar_t *cl_contents;
 /*cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
@@ -93,8 +94,9 @@ cHook *hook_SV_MasterHeartbeat;
 cHook *hook_SV_HitchWarning;
 cHook* hook_cvar_set2;
 cHook *hook_G_Damage;
-
+cHook *hook_PM_WalkMove;
 cHook *hook_ClientBegin;
+cHook *hook_SV_ClipMoveToEntity;
 #if COMPILE_LIBCURL == 1
 cHook *hook_G_Say;
 #endif
@@ -223,6 +225,9 @@ BG_GetNumWeapons_t BG_GetNumWeapons;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_GetType_t Scr_GetType;
 vectoangles_t vectoangles;
+Q_crandom_t Q_crandom;
+VectorLength_t VectorLength;
+VectorNormalize2D_t VectorNormalize2D;
 /*void UCMD_custom_sprint(client_t *cl);
 
 static ucmd_t ucmds[] =
@@ -307,9 +312,11 @@ void custom_Com_Init(char *commandLine)
     discord_logTeamSay = Cvar_Get("discord_logTeamSay", "0", CVAR_ARCHIVE);
 
     g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    sv_waterboost = Cvar_Get("sv_waterboost", "0", CVAR_ARCHIVE);
+    cl_contents = Cvar_Get("cl_contents", "default", CVAR_ARCHIVE);
+    g_playerCollision = Cvar_Get("g_playerCollision", "1", CVAR_ARCHIVE);
 
-/*    g_playerCollision = Cvar_Get("g_playerCollision", "1", CVAR_ARCHIVE);
-    player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
+/*    player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
     player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
     player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
     player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);*/
@@ -872,15 +879,15 @@ void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean client
 
 
 
-/*
+
 void custom_G_SetClientContents(gentity_t *ent)
 {
 	int id = ent - g_entities;
 
-	/.* New code start: g_playerCollision dvar *./
-	if ( !g_playerCollision->integer )
-		return;
-	/.* New code end *./
+	// /* New code start: g_playerCollision dvar */
+	// if ( !g_playerCollision->integer )
+	// 	return;
+	// /* New code end */
 
 	if ( ent->client->noclip == 0 )
 	{
@@ -894,10 +901,13 @@ void custom_G_SetClientContents(gentity_t *ent)
 			{
 				ent->r.contents = CONTENTS_BODY;
 
-				/.* New code start: per-player/team collison *./
-				if ( customPlayerState[id].overrideContents )
-					ent->r.contents = customPlayerState[id].contents;
-				/.* New code end *./
+                if(cl_contents->integer == -1)
+                    ent->r.contents = CONTENTS_BODY;
+
+				/* New code start: per-player/team collison */
+                if(!strcmp(cl_contents->string, "default"))
+				    ent->r.contents = cl_contents->integer; //customPlayerState[id].contents;
+                /* New code end */
 			}
 		}
 		else
@@ -909,7 +919,43 @@ void custom_G_SetClientContents(gentity_t *ent)
 	{
 		ent->r.contents = 0;
 	}
-}*/
+}
+
+
+void custom_PM_WalkMove(pmove_t *pm, pml_t *pml)
+{
+    // call original WalkMove
+    hook_PM_WalkMove->unhook();
+    void (*PM_WalkMove)(pmove_t*, pml_t*);
+    *(int*)&PM_WalkMove = hook_PM_WalkMove->from;
+    PM_WalkMove(pm, pml);
+    hook_PM_WalkMove->hook();
+
+
+}
+
+void custom_SV_ClipMoveToEntity(int a1, int a2)
+{
+    if(g_playerCollision->integer)
+    {
+        hook_SV_ClipMoveToEntity->unhook();
+        void (*SV_ClipMoveToEntity)(int, int);
+        *(int*)&SV_ClipMoveToEntity = hook_SV_ClipMoveToEntity->from;
+        SV_ClipMoveToEntity(a1, a2);
+        hook_SV_ClipMoveToEntity->hook();
+    } else {
+        //return;
+    }
+}
+
+
+
+
+
+
+
+
+
 
 
 qboolean logHeartbeat = qtrue;
@@ -1295,12 +1341,111 @@ void custom_ClientBegin(unsigned int clientNum)
 }*/
 
 
-qboolean hook_StuckInClient(gentity_s *self)
+// qboolean hook_StuckInClient(gentity_s *self)
+// {
+//     if(!g_playerEject->integer)
+//         return qfalse;
+
+//     return StuckInClient(self);
+// }
+
+long double VectorLength2D(float *vec)
 {
-    if(!g_playerEject->integer)
-        return qfalse;
-    return StuckInClient(self);
+    return sqrtf(vec[0]*vec[0] + vec[1]*vec[1]);
 }
+
+
+
+// someone fix it please
+qboolean custom_StuckInClient(gentity_t *self)
+{
+	float fTemp;
+	long double dTemp;
+	float selfEjectSpeed;
+	float hitEjectSpeed;
+	vec2_t dir;
+	gentity_t *hit;
+	float hitSpeed;
+	float selfSpeed;
+	int i;
+	int id = self - g_entities;
+
+	/* New code start: g_playerEject cvar */
+	if ( !g_playerEject->integer )
+		return qfalse;
+	/* New code end */
+/*
+    Com_Printf("health: %d\n", self->health);
+    Com_Printf("contents: %d\n", self->r.contents);
+    Com_Printf("absmin: %f %f %f\n", self->r.absmin[0], self->r.absmin[1], self->r.absmin[2]);
+    Com_Printf("absmax: %f %f %f\n", self->r.absmax[0], self->r.absmax[1], self->r.absmax[2]);
+    Com_Printf("currentOrigin: %f %f %f\n", self->r.currentOrigin[0], self->r.currentOrigin[1], self->r.currentOrigin[2]);  
+    Com_Printf("inuse: %d\n", self->r.inuse);
+    Com_Printf("currentAngles: %f %f %f\n", self->r.currentAngles[0], self->r.currentAngles[1], self->r.currentAngles[2]); 
+*/
+
+	if ( ( self->client->sess.sessionState == STATE_PLAYING ) && ( ( self->r.contents & CONTENTS_BODY ) != 0 || ( self->r.contents == CONTENTS_CORPSE ) ) )
+	{
+		hit = g_entities;
+		for ( i = 0; i < sv_maxclients->integer; i++, hit++)
+		{
+			if ( ( ( ( ( hit->r.inuse != 0 ) && ( hit->client->sess.sessionState == STATE_PLAYING ) ) && ( ( hit != self && hit->client != NULL ) ) ) && ( 0 < hit->health && ( ( hit->r.contents & CONTENTS_BODY ) != 0 || ( hit->r.contents == CONTENTS_CORPSE ) ) ) ) &&
+			( hit->r.absmin[0] <= self->r.absmax[0] && ( ( ( self->r.absmin[0] <= hit->r.absmax[0] && ( hit->r.absmin[1] <= self->r.absmax[1] ) ) && ( self->r.absmin[1] <= hit->r.absmax[1] ) ) && ( hit->r.absmin[2] <= self->r.absmax[2] && ( self->r.absmin[2] <= hit->r.absmax[2] ) ) ) ) )
+			{
+				/* New code start: per-player/team collison */
+				if(!g_playerCollision->integer)
+				    continue;
+				/* New code end */
+
+				VectorSubtract2(hit->r.currentOrigin, self->r.currentOrigin, dir);
+				fTemp = self->r.maxs[0] + hit->r.maxs[0];
+				dTemp = VectorLength2D(dir); // nonexistent
+				if ( dTemp <= ( (long double)fTemp * (long double)fTemp ) )
+				{
+					VectorSubtract2(hit->r.currentOrigin, self->r.currentOrigin, dir);
+					dTemp = Q_crandom();
+					dir[0] = dir[0] + ( ( dTemp + dTemp ) - 1.0 );
+					dTemp = Q_crandom();
+					dir[1] = dir[1] + ( ( dTemp + dTemp ) - 1.0 );
+					VectorNormalize2D(dir);
+					if ( 0.0 < VectorLength2D(hit->client->ps.velocity) )
+					{
+						hitEjectSpeed = (float)1; // cvar
+					}
+					else
+					{
+						hitEjectSpeed = 0.0;
+					}
+					hitSpeed = hitEjectSpeed;
+					if ( 0.0 < VectorLength2D(self->client->ps.velocity) )
+					{
+						selfEjectSpeed = (float)1; // cvar
+					}
+					else
+					{
+						selfEjectSpeed = 0.0;
+					}
+					selfSpeed = selfEjectSpeed;
+					if ( hitEjectSpeed < 0.0001 && selfEjectSpeed < 0.0001 )
+					{
+						hitSpeed = (float)hit->client->ps.speed;
+						selfSpeed = (float)self->client->ps.speed;
+					}
+					VectorScale2(dir, hitSpeed, hit->client->ps.velocity);
+					hit->client->ps.pm_flags = hit->client->ps.pm_flags | PMF_SLIDING;
+					VectorScale2(dir, selfSpeed * -1, self->client->ps.velocity);
+					self->client->ps.pm_flags = self->client->ps.pm_flags | PMF_SLIDING;
+                    return qtrue;
+                }
+			}
+		}
+	}
+	return qfalse;
+}
+
+
+
+
 
 void meh()
 {
@@ -1381,7 +1526,7 @@ void custom_SV_AddOperatorCommands()
 
 // See https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/
 bool str_iseq(const char *s1, const char *s2)
-{
+{ 
     int             m = 0;
     volatile size_t i = 0;
     volatile size_t j = 0;
@@ -1992,11 +2137,15 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
     Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");
     vectoangles = (vectoangles_t)dlsym(libHandle, "vectoangles");
+    Q_crandom = (Q_crandom_t)dlsym(libHandle, "Q_crandom");
+    VectorLength = (VectorLength_t)dlsym(libHandle, "VectorLength");
+    VectorNormalize2D = (VectorNormalize2D_t)dlsym(libHandle, "VectorNormalize2D");
     ////
 
     hook_call((int)dlsym(libHandle, "vmMain") + 0xF0, (int)hook_ClientCommand);
 //    hook_jmp((int)dlsym(libHandle, "G_Say"), (int)custom_G_Say);
 
+    hook_jmp((int)dlsym(libHandle, "G_SetClientContents"), (int)custom_G_SetClientContents);
 
     //Jump
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked); //UO:sub_24B7C
@@ -2006,8 +2155,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
     hook_jmp((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
     hook_call((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x10B0, (int)hook_Jump_Check);
-    hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x1C4FF, (int)hook_StuckInClient);
-
+    //hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x1C4FF, (int)custom_StuckInClient);
+    hook_jmp((int)dlsym(libHandle, "StuckInClient"), (int)custom_StuckInClient);
     hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
     hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
@@ -2023,6 +2172,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 #endif
     hook_G_Damage = new cHook((int)dlsym(libHandle, "G_Damage"), (int)custom_G_Damage);
     hook_G_Damage->hook();
+
+    hook_PM_WalkMove = new cHook((int)dlsym(libHandle, "PM_GetEffectiveStance") + 0x1698, (int)custom_PM_WalkMove);
+    hook_PM_WalkMove->hook();
+
 //    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
 //    hook_ClientSpawn->hook();
 
@@ -2073,6 +2226,10 @@ public:
 //        hook_jmp(0x0808c7a9, (int)custom_SV_ExecuteClientCommand);
 
         hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
+
+        hook_SV_ClipMoveToEntity = new cHook(0x809959C, (int)custom_SV_ClipMoveToEntity);
+        hook_SV_ClipMoveToEntity->hook();
+
 
 
         hook_com_init = new cHook(0x08070ef8, (int)custom_Com_Init);

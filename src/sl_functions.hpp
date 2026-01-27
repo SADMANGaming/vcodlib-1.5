@@ -173,5 +173,10 @@ typedef int (*trap_GetArchivedClientInfo_t)(int clientNum, int archiveTime, play
 typedef void (*trap_SendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
 extern trap_SendServerCommand_t trap_SendServerCommand;
 
+typedef long double (*Q_crandom_t)(void);
+typedef long double (*VectorLength_t)(float *v);
+typedef vec_t (*VectorNormalize2D_t)(vec2_t v);
+
+
 
 #endif

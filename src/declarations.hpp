@@ -13,6 +13,10 @@
 #define VectorSet(v, x, y, z)   ((v)[0] = (x), (v)[1] = (y), (v)[2] = (z))
 #define VectorSubtract( a, b, c )   ( ( c )[0] = ( a )[0] - ( b )[0],( c )[1] = ( a )[1] - ( b )[1],( c )[2] = ( a )[2] - ( b )[2] )
 
+#define VectorSubtract2( a, b, c )  ( ( c )[0] = ( a )[0] - ( b )[0],( c )[1] = ( a )[1] - ( b )[1] )
+#define VectorScale2( v, s, o )     ( ( o )[0] = ( v )[0] * ( s ),( o )[1] = ( v )[1] * ( s ) )
+
+
 #define FLOAT_INT_BITS  13
 #define FLOAT_INT_BIAS  (1 << (FLOAT_INT_BITS - 1)) // 0x1000
 #define GENTITYNUM_BITS 10
@@ -96,6 +100,8 @@
 #define OVERCLIP 1.001
 
 #define CONTENTS_BODY               0x2000000
+#define CONTENTS_WATER              0x0000020
+#define CONTENTS_CORPSE             0x4000000
 
 #define STANCE_EFFECTIVE_STAND  0
 #define STANCE_EFFECTIVE_PRONE  1
@@ -419,37 +425,86 @@ typedef struct entityState_s
 } entityState_t;
 
 
+// 1.1
 typedef struct
 {
-    byte linked;            // 0x0  (ent + 240)
-    byte gap_0x1[3];
-    byte svFlags;           // 0x4  (... + 244)
-    byte gap_0x5[0xF];      //      (... + 245)
-    vec3_t mins;            // 0x14 (... + 260)
-    vec3_t maxs;            // 0x20 (... + 272)
-    /* singleClient moved to 0x2C since 0x29 overlaps maxs when vec3_t is 12 bytes */
-    int  singleClient;      // 0x2C
-    byte gap_0x30[0x8];     // fills to preserve size/offsets up to original layout
-    int  contents;          // 0x38 (... + 284)
-    byte gap_0x3C[0x30];
+    byte gap[4];
+    int svFlags;
+    int singleClient;
+    byte gap2[4];
+    byte inuse;
+    vec3_t mins;
+    vec3_t maxs;
+    int contents;
+    vec3_t absmin;
+    vec3_t absmax;
+    vec3_t currentOrigin;
+    vec3_t currentAngles;
+    int ownerNum;
+    int eventTime;
+    byte gap3[0x4];
 } entityShared_t;
 
 
 
-/*typedef struct
+/// ai
+// typedef struct
+// {
+//     byte linked;        // 0x0  (ent + 240)
+//     byte gap_0x1[3];    // 0x1  (3 bytes padding)
+//     byte svFlags;       // 0x4  (ent + 244)
+//     byte gap_0x5[4];    // 0x5  (4 bytes padding)
+//     byte inuse;         // 0x9  (ent + 249)
+//     byte gap_0x9[0xA];  // 0xA  (10 bytes padding)
+//     vec3_t mins;        // 0x14 (ent + 260)
+//     vec3_t maxs;        // 0x20 (ent + 272)
+//     byte gap_0x2C[0xC]; // 0x2C (12 bytes padding)
+//     int contents;       // 0x38 (ent + 284)
+
+//     vec3_t absmin;
+//     vec3_t absmax;
+//     vec3_t currentOrigin;
+//     vec3_t currentAngles;
+//     //byte gap_0x3C[0x30];// 0x3C (48 bytes padding)
+// } entityShared_t;
+
+
+// last original
+// typedef struct
+// {
+//     byte linked;        // 0x0  (ent + 240)
+//     byte gap_0x1[3];
+//     byte svFlags;       // 0x4  (... + 244)
+//     byte gap_0x5[0xF];  //      (... + 245)
+//     vec3_t mins;        // 0x14 (... + 260)
+//     vec3_t maxs;        // 0x20 (... + 272)
+//     byte gap_0x2C[0xC];
+//     int contents;       // 0x38 (... + 284)
+//     byte gap_0x3C[0x30];
+// } entityShared_t;
+
+
+/////////////// stolen from zk_libcod ///////////////
+typedef struct traceExtents_s
 {
-    byte linked;        // 0x0  (ent + 240)
-    byte gap_0x1[3];
-    byte svFlags;       // 0x4  (... + 244)
-    byte gap_0x5[0xF];  //      (... + 245)
-    vec3_t mins;        // 0x14 (... + 260)
-    vec3_t maxs;        // 0x20 (... + 272)
-    byte gap_0x2C[0xC];
-    int contents;       // 0x38 (... + 284)
-    byte gap_0x3C[0x30];
-} entityShared_t;*/
+	vec3_t start;
+	vec3_t end;
+	vec3_t invDelta;
+} traceExtents_t;
 
 
+typedef struct moveclip_s
+{
+	vec3_t mins;
+	vec3_t maxs;
+	vec3_t outerSize;
+	traceExtents_t extents;
+	int passEntityNum;
+	int passOwnerNum;
+	int contentmask;
+} moveclip_t;
+
+//////////////// end stolen from zk_libcod ///////////////
 
 typedef struct objective_s
 {
@@ -650,25 +705,52 @@ struct gclient_s
     byte gap_0x2240[0x8C];
 };
 
-struct gentity_s
-{
-    entityState_t s;        // 0x0
-    entityShared_t r;       // 0xF0
-    struct gclient_s *client;   // 0x15C
-    byte gap_0x160[0x13];
-    byte watertype;         // 0x173
-    byte waterlevel;        // 0x174
-    byte takedamage;        // 0x175
-    byte gap_0x176[0x6];
-    uint16_t classname;     // 0x17c
-    byte gap_0x17E[0x6];
-    int flags;              // 0x184
-    byte gap_0x188[0x10];
-    int clipmask;           // 0x198
-    byte gap_0x19C[0x84];
-    void (*die)(gentity_s *self, gentity_s *inflictor, gentity_s *attacker, int damage, int meansOfDeath, int iWeapon, const float *vDir, int hitLoc); // 0x220
-    byte gap_0x224[0xF8];
+
+
+struct gentity_s 
+{ 
+    entityState_t s;        // 0x0 
+    entityShared_t r;       // 0xF0 
+    struct gclient_s *client;   // 0x15C 
+    byte gap_0x160[0x13]; 
+    byte watertype;         // 0x173 
+    byte waterlevel;        // 0x174 
+    byte takedamage;        // 0x175 
+    byte gap_0x176[0x6]; 
+    uint16_t classname;     // 0x17C 
+    byte gap_0x17E[0x6]; 
+    int flags;              // 0x184 
+    byte gap_0x188[0x10]; 
+    int clipmask;           // 0x198 
+    byte gap_0x19C[0x84]; 
+    void (*die)(gentity_s *self, gentity_s *inflictor, gentity_s *attacker, int damage, int meansOfDeath, int iWeapon, const float *vDir, int hitLoc); // 0x220 
+    byte gap_0x224[0x14];   // 0x224 (20 bytes)
+    int health;             // 0x238 (gentity + 142*4)
+    byte gap_0x23C[0xE0];   // 0x23C
 };
+
+
+
+// last working
+// struct gentity_s
+// {
+//     entityState_t s;        // 0x0
+//     entityShared_t r;       // 0xF0
+//     struct gclient_s *client;   // 0x15C
+//     byte gap_0x160[0x13];
+//     byte watertype;         // 0x173
+//     byte waterlevel;        // 0x174
+//     byte takedamage;        // 0x175
+//     byte gap_0x176[0x6];
+//     uint16_t classname;     // 0x17c
+//     byte gap_0x17E[0x6];
+//     int flags;              // 0x184
+//     byte gap_0x188[0x10];
+//     int clipmask;           // 0x198
+//     byte gap_0x19C[0x84];
+//     void (*die)(gentity_s *self, gentity_s *inflictor, gentity_s *attacker, int damage, int meansOfDeath, int iWeapon, const float *vDir, int hitLoc); // 0x220
+//     byte gap_0x224[0xF8];
+// };
 
 typedef struct
 {
@@ -1026,6 +1108,7 @@ typedef struct
     const char *name;
     void (*func)(client_t *cl);
 } ucmd_t;
+
 
 
 extern gentity_t *g_entities;

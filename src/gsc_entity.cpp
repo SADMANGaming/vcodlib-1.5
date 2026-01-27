@@ -50,7 +50,7 @@ void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
     if(Scr_GetType(0) == STACK_UNDEFINED)
     {
         pEnt->r.svFlags &= ~SVF_SINGLECLIENT;
-        pEnt->r.singleClient = 0;
+        //pEnt->r.singleClient = 0;
         Scr_AddBool(qtrue);
         return;
     }
@@ -63,7 +63,7 @@ void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
     }
     
     pEnt->r.svFlags |= SVF_SINGLECLIENT;
-    pEnt->r.singleClient = clientEnt->s.number;
+    //pEnt->r.singleClient = clientEnt->s.number;
 
     Scr_AddBool(qtrue);
 }
