@@ -121,6 +121,13 @@ static const SV_UpdateServerCommandsToClient_t SV_UpdateServerCommandsToClient =
 //typedef void (*SV_Trace_t)(trace_t *results, const float *start, const float *mins, const float *maxs, const float *end, int passEntityNum, int contentMask, int locational, uint8_t *priorityMap, int staticmodels);
 //static const SV_Trace_t SV_Trace = (SV_Trace_t)0x0809D884;
 
+typedef clipHandle_t (*SV_ClipHandleForEntity_t)(gentity_t *ent);
+static const SV_ClipHandleForEntity_t SV_ClipHandleForEntity = (SV_ClipHandleForEntity_t)0x8098CA8;
+
+// CM
+typedef qboolean (*CM_TransformedBoxTrace_t)(trace_t *results, const float *start, const float *end, const float *mins, const float *maxs, unsigned int model, int brushmask, const float *origin, const float *angles);
+static const CM_TransformedBoxTrace_t CM_TransformedBoxTrace = (CM_TransformedBoxTrace_t)0x805B366;
+
 // SVC
 typedef void (*SVC_Status_t)(netadr_t from);
 static const SVC_Status_t SVC_Status = (SVC_Status_t)0x0809246E;

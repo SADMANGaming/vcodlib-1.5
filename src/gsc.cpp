@@ -34,6 +34,9 @@ scr_function_t scriptFunctions[] =
 
     {"exec", gsc_utils_exec, 0},
 
+    {"colorHex", gsc_utils_colorhex, 0},
+    {"colorRainbow", gsc_utils_colorRainbow, 0},
+    {"colorRGB", gsc_utils_colorrgb, 0},
 
     {NULL, NULL, 0} // Terminator
 };
@@ -87,6 +90,7 @@ scr_method_t scriptMethods[] =
     {"meleeWeapon", gsc_bots_meleeweapon, 0},
     {"reloadWeapon", gsc_bots_reloadweapon, 0},
     {"switchToWeaponId", gsc_bots_switchtoweaponid, 0},
+    {"switchToWeapon", gsc_bots_switchtoweapon, 0},
 
     {"aimButtonPressed", gsc_player_button_ads, 0},
     {"leftButtonPressed", gsc_player_button_left, 0},

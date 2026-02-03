@@ -114,7 +114,7 @@ typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
 
 typedef void (*xcommand_t)(void);
-
+typedef int clipHandle_t;
 
 
 typedef unsigned char byte;
@@ -945,6 +945,7 @@ struct WeaponProperties // Custom struct for g_legacyStyle
 
 
 
+// last before adding svEntities
 typedef struct
 {
     serverState_t state;
@@ -972,6 +973,7 @@ typedef struct
     float ucompAve;
     int	ucompNum;
 } server_t; // TODO: Verify, seems too big
+
 
 typedef struct weaponinfo_t
 {
@@ -1148,7 +1150,7 @@ static_assert((sizeof(gentity_t) == 796), "ERROR: gentity_t size invalid");
 static_assert((sizeof(hudElemState_t) == 6944), "ERROR: hudElemState_t size invalid");
 static_assert((sizeof(objective_t) == 28), "ERROR: objective_t size invalid");
 static_assert((sizeof(trace_t) == 48), "ERROR: trace_t size invalid");
-static_assert((sizeof(server_t) == 406764), "ERROR: server_t size invalid"); //398636, i made 406764 because only then fastdl functions work TODO
+static_assert((sizeof(server_t) == /*398636*/406764), "ERROR: server_t size invalid"); //398636, i made 406764 because only then fastdl functions work TODO
 static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size invalid");
 static_assert((sizeof(svEntity_t) == 380), "ERROR: svEntity_t size invalid");
 static_assert((sizeof(archivedEntity_t) == 276), "ERROR: archivedEntity_t size invalid");

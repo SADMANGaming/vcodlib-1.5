@@ -354,3 +354,120 @@ void gsc_utils_logprintconsole()
 
     stackPushBool(qtrue);
 }
+
+void gsc_utils_colorhex()
+{
+    char *hex;
+    vec3_t colour;
+    char buf[3];
+    char *end;
+
+    if ( !stackGetParams("s", &hex) )
+    {
+        stackError("gsc_utils_colorhex() one argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( strlen(hex) != 7 || hex[0] != '#' )
+    {
+        stackError("gsc_utils_colorhex() invalid hex format, expected #RRGGBB");
+        stackPushUndefined();
+        return;
+    }
+
+    buf[0] = hex[1];
+    buf[1] = hex[2];
+    buf[2] = '\0';
+    int r = strtol(buf, &end, 16);
+
+    buf[0] = hex[3];
+    buf[1] = hex[4];
+    int g = strtol(buf, &end, 16);
+
+    buf[0] = hex[5];
+    buf[1] = hex[6];
+    int b = strtol(buf, &end, 16);
+
+    if ( r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 )
+    {
+        stackError("gsc_utils_colorhex() hex value out of range");
+        stackPushUndefined();
+        return;
+    }
+
+    colour[0] = (float)r / 255.0f;
+    colour[1] = (float)g / 255.0f;
+    colour[2] = (float)b / 255.0f;
+
+    stackPushVector(colour);
+}
+
+void gsc_utils_colorRainbow()
+{
+    static int phase = 0;   // 0–1535
+    vec3_t colour;
+
+    int p = phase;
+
+    if (p < 256) {
+        colour[0] = 1.0f;
+        colour[1] = p / 255.0f;
+        colour[2] = 0.0f;
+    }
+    else if (p < 512) {
+        colour[0] = (512 - p) / 255.0f;
+        colour[1] = 1.0f;
+        colour[2] = 0.0f;
+    }
+    else if (p < 768) {
+        colour[0] = 0.0f;
+        colour[1] = 1.0f;
+        colour[2] = (p - 512) / 255.0f;
+    }
+    else if (p < 1024) {
+        colour[0] = 0.0f;
+        colour[1] = (1024 - p) / 255.0f;
+        colour[2] = 1.0f;
+    }
+    else if (p < 1280) {
+        colour[0] = (p - 1024) / 255.0f;
+        colour[1] = 0.0f;
+        colour[2] = 1.0f;
+    }
+    else {
+        colour[0] = 1.0f;
+        colour[1] = 0.0f;
+        colour[2] = (1536 - p) / 255.0f;
+    }
+
+    phase = (phase + 1) % 1536;
+
+    stackPushVector(colour);
+}
+
+void gsc_utils_colorrgb()
+{
+    int r, g, b;
+    vec3_t colour;
+
+    if ( !stackGetParams("iii", &r, &g, &b) )
+    {
+        stackError("gsc_utils_colorrgb() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 )
+    {
+        stackError("gsc_utils_colorrgb() RGB values must be between 0 and 255");
+        stackPushUndefined();
+        return;
+    }
+
+    colour[0] = (float)r / 255.0f;
+    colour[1] = (float)g / 255.0f;
+    colour[2] = (float)b / 255.0f;
+
+    stackPushVector(colour);
+}

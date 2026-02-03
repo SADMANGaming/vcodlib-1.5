@@ -20,4 +20,8 @@ void gsc_utils_tolower();
 void gsc_utils_getsystemtime();
 void gsc_utils_logprintconsole();
 
+void gsc_utils_colorhex();
+void gsc_utils_colorRainbow();
+void gsc_utils_colorrgb();
+
 #endif
