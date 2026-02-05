@@ -943,6 +943,8 @@ void custom_SV_ClipMoveToEntity(int a1, int a2)
         *(int*)&SV_ClipMoveToEntity = hook_SV_ClipMoveToEntity->from;
         SV_ClipMoveToEntity(a1, a2);
         hook_SV_ClipMoveToEntity->hook();
+
+
     } else {
         return;
     }

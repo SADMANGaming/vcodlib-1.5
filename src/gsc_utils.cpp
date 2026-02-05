@@ -407,9 +407,25 @@ void gsc_utils_colorRainbow()
 {
     static int phase = 0;   // 0–1535
     vec3_t colour;
-
+    int time;
     int p = phase;
 
+    if( !stackGetParams("i", &time) )
+    {
+        stackError("gsc_utils_colorRainbow() one argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if( time <= 0 )
+    {
+        stackError("gsc_utils_colorRainbow() time must be non-negative and non-zero");
+        stackPushUndefined();
+        return;
+    }
+
+    // special thanks to chatgpt and some guy on stackoverflow for the rgb conversion 
+    
     if (p < 256) {
         colour[0] = 1.0f;
         colour[1] = p / 255.0f;
@@ -441,7 +457,7 @@ void gsc_utils_colorRainbow()
         colour[2] = (1536 - p) / 255.0f;
     }
 
-    phase = (phase + 1) % 1536;
+    phase = (phase + time) % 1536;
 
     stackPushVector(colour);
 }
